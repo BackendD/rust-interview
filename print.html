@@ -298,7 +298,81 @@
 <hr />
 <div style="break-before: page; page-break-before: always;"></div><h1 id="سوالات-مصاحبه-فریمورک-axum"><a class="header" href="#سوالات-مصاحبه-فریمورک-axum">سوالات مصاحبه فریم‌ورک Axum</a></h1>
 <p>این بخش به مباحث تخصصی و سوالات مصاحبه پیرامون <strong>Axum</strong>، یکی از محبوب‌ترین و ارگونومیک‌ترین فریم‌ورک‌های وب در اکوسیستم Rust می‌پردازد. Axum بر پایه <code>tokio</code> و <code>tower</code> ساخته شده و برای توسعه سرویس‌های وب با کارایی بالا طراحی شده است.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="مبانی-axum"><a class="header" href="#مبانی-axum">مبانی Axum</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="1-مبانی-axum"><a class="header" href="#1-مبانی-axum">1. مبانی Axum</a></h1>
+<hr />
+<h2 id="axum-چیست-و-چه-تفاوتی-با-actix--warp-دارد"><a class="header" href="#axum-چیست-و-چه-تفاوتی-با-actix--warp-دارد">Axum چیست و چه تفاوتی با Actix / Warp دارد؟</a></h2>
+<h3 id="پاسخ-بلند-8"><a class="header" href="#پاسخ-بلند-8">پاسخ بلند</a></h3>
+<p>Axum یک وب‌فریم‌ورک مدرن برای Rust است که روی Tokio و Hyper ساخته شده و به‌طور مستقیم از اکوسیستم Tower استفاده می‌کند. تمرکز اصلی Axum بر <strong>type-safety</strong>، <strong>composability</strong> و استفاده‌ی حداکثری از type system Rust است.</p>
+<p>در مقایسه:</p>
+<ul>
+<li><strong>Actix Web</strong> معماری و runtime اختصاصی خود را دارد و middlewareها و مدل اجرایی آن tightly-coupled هستند.</li>
+<li><strong>Warp</strong> از مدل filter-based استفاده می‌کند که اگرچه type-safe است، اما در APIهای بزرگ و پیچیده به‌سرعت خوانایی و maintainability خود را از دست می‌دهد.</li>
+<li><strong>Axum</strong> با تکیه بر Router، extractors صریح و Tower middlewareها، ساختار واضح‌تر و قابل‌گسترش‌تری برای APIهای production-grade فراهم می‌کند.</li>
+</ul>
+<p>Axum عمداً یک abstraction نازک است و تلاش نمی‌کند همه‌چیز را خودش پیاده‌سازی کند.</p>
+<h3 id="پاسخ-کوتاه-8"><a class="header" href="#پاسخ-کوتاه-8">پاسخ کوتاه</a></h3>
+<p>Axum فریم‌ورکی type-safe و مدولار روی Hyper/Tokio و Tower است؛ برخلاف Actix runtime اختصاصی ندارد و برخلاف Warp از مدل filter استفاده نمی‌کند.</p>
+<hr />
+<h2 id="چرا-axum-بر-پایهی-tower-ساخته-شده-است"><a class="header" href="#چرا-axum-بر-پایهی-tower-ساخته-شده-است">چرا Axum بر پایه‌ی Tower ساخته شده است؟</a></h2>
+<h3 id="پاسخ-بلند-9"><a class="header" href="#پاسخ-بلند-9">پاسخ بلند</a></h3>
+<p>Tower یک abstraction استاندارد برای سرویس‌های async در Rust است که حول trait اصلی <code>Service</code> و مفهوم <code>Layer</code> (middleware) شکل گرفته است. Axum با ساختن خود بر پایه‌ی Tower:</p>
+<ul>
+<li>از middlewareهای بالغ و battle-tested استفاده می‌کند</li>
+<li>نیاز به reinvent کردن middleware stack را حذف می‌کند</li>
+<li>امکان ترکیب ساده‌ی concerns مثل timeout، retry، rate limit، tracing و auth را فراهم می‌کند</li>
+</ul>
+<p>در واقع Axum یک adapter انسانی‌پسند برای HTTP routing روی Tower است.</p>
+<h3 id="پاسخ-کوتاه-9"><a class="header" href="#پاسخ-کوتاه-9">پاسخ کوتاه</a></h3>
+<p>برای استفاده از abstraction استاندارد <code>Service</code> و اکوسیستم آماده‌ی middlewareهای Tower.</p>
+<hr />
+<h2 id="نقش-router-در-axum-چیست"><a class="header" href="#نقش-router-در-axum-چیست">نقش <code>Router</code> در Axum چیست؟</a></h2>
+<h3 id="پاسخ-بلند-10"><a class="header" href="#پاسخ-بلند-10">پاسخ بلند</a></h3>
+<p><code>Router</code> هسته‌ی اصلی تعریف API در Axum است. این ساختار مسئول:</p>
+<ul>
+<li>نگاشت مسیر و HTTP method به handler</li>
+<li>ترکیب چند Router به‌صورت سلسله‌مراتبی</li>
+<li>اعمال middleware در سطوح مختلف</li>
+<li>مدیریت state اشتراکی بین handlerها</li>
+</ul>
+<p>Router نه‌تنها مسیرها را نگه می‌دارد، بلکه boundary اصلی طراحی API و modularization در Axum محسوب می‌شود.</p>
+<h3 id="پاسخ-کوتاه-10"><a class="header" href="#پاسخ-کوتاه-10">پاسخ کوتاه</a></h3>
+<p>Router وظیفه‌ی اتصال مسیرها به handlerها، ترکیب sub-routerها و اعمال middleware و state را دارد.</p>
+<hr />
+<h2 id="تفاوت-route-و-nest-چیست"><a class="header" href="#تفاوت-route-و-nest-چیست">تفاوت <code>route</code> و <code>nest</code> چیست؟</a></h2>
+<h3 id="پاسخ-بلند-11"><a class="header" href="#پاسخ-بلند-11">پاسخ بلند</a></h3>
+<ul>
+<li><code>route</code> برای ثبت مستقیم یک مسیر مشخص و اتصال آن به handler یا service استفاده می‌شود.</li>
+<li><code>nest</code> برای mount کردن یک Router دیگر زیر یک prefix مشخص به کار می‌رود.</li>
+</ul>
+<p>در <code>nest</code>، prefix از مسیر حذف می‌شود و Router داخلی بدون آگاهی از مسیر بالادستی کار می‌کند. این ویژگی برای ماژولار کردن API (مثلاً <code>/api/v1/users</code>) حیاتی است.</p>
+<h3 id="پاسخ-کوتاه-11"><a class="header" href="#پاسخ-کوتاه-11">پاسخ کوتاه</a></h3>
+<p><code>route</code> یک مسیر منفرد را ثبت می‌کند؛ <code>nest</code> یک Router کامل را زیر یک prefix قرار می‌دهد.</p>
+<hr />
+<h2 id="چرا-handlerها-در-axum-async-هستند"><a class="header" href="#چرا-handlerها-در-axum-async-هستند">چرا handlerها در Axum <code>async</code> هستند؟</a></h2>
+<h3 id="پاسخ-بلند-12"><a class="header" href="#پاسخ-بلند-12">پاسخ بلند</a></h3>
+<p>Axum بر مبنای I/O غیرهمزمان طراحی شده و handlerها مستقیماً در مسیر اجرای async runtime (Tokio) قرار می‌گیرند. <code>async</code> بودن handlerها امکان:</p>
+<ul>
+<li>انجام I/O بدون بلوکه کردن thread</li>
+<li>مقیاس‌پذیری بالا با تعداد thread کم</li>
+<li>استفاده‌ی مستقیم از async database clients و HTTP clients</li>
+</ul>
+<p>را فراهم می‌کند. این طراحی برای سرویس‌های high-concurrency ضروری است.</p>
+<h3 id="پاسخ-کوتاه-12"><a class="header" href="#پاسخ-کوتاه-12">پاسخ کوتاه</a></h3>
+<p>چون Axum بر پایه‌ی async I/O ساخته شده و handlerها باید non-blocking و scalable باشند.</p>
+<hr />
+<h2 id="چرا-امضای-handler-باید-type-safe-باشد"><a class="header" href="#چرا-امضای-handler-باید-type-safe-باشد">چرا امضای handler باید type-safe باشد؟</a></h2>
+<h3 id="پاسخ-بلند-13"><a class="header" href="#پاسخ-بلند-13">پاسخ بلند</a></h3>
+<p>Axum از extractors مبتنی بر type system استفاده می‌کند؛ یعنی ورودی‌های handler (path params، query، headers، body، state) همگی type-safe هستند و در زمان کامپایل بررسی می‌شوند.</p>
+<p>این رویکرد:</p>
+<ul>
+<li>خطاهای parsing و missing data را به compile-time نزدیک می‌کند</li>
+<li>قرارداد ورودی handler را شفاف و self-documenting می‌سازد</li>
+<li>تست‌پذیری و refactorپذیری را افزایش می‌دهد</li>
+</ul>
+<p>Handler در Axum عملاً یک function با وابستگی‌های صریح است، نه یک تابع با دسترسی مبهم به request.</p>
+<h3 id="پاسخ-کوتاه-13"><a class="header" href="#پاسخ-کوتاه-13">پاسخ کوتاه</a></h3>
+<p>برای اینکه استخراج داده از request در زمان کامپایل بررسی شود و خطاهای runtime حذف شوند.</p>
+<hr />
 
                     </main>
 

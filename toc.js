@@ -8,7 +8,7 @@ class MDBookSidebarScrollbox extends HTMLElement {
         super();
     }
     connectedCallback() {
-        this.innerHTML = '<ol class="chapter"><li class="chapter-item expanded "><a href="core/index.html"><strong aria-hidden="true">1.</strong> زبان‌ها</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="core/rust-fundamentals.html"><strong aria-hidden="true">1.1.</strong> مفاهیم پایه (Rust Fundamentals)</a></li></ol></li><li class="chapter-item expanded "><a href="axum/index.html"><strong aria-hidden="true">2.</strong> توسعه</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="development/decision-records.html"><strong aria-hidden="true">2.1.</strong> مبانی Axum</a></li></ol></li></ol>';
+        this.innerHTML = '<ol class="chapter"><li class="chapter-item expanded "><a href="core/index.html"><strong aria-hidden="true">1.</strong> هسته</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="core/rust-fundamentals.html"><strong aria-hidden="true">1.1.</strong> مفاهیم پایه (Rust Fundamentals)</a></li></ol></li><li class="chapter-item expanded "><a href="axum/index.html"><strong aria-hidden="true">2.</strong> وب</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="axum/axum-fundamentals.html"><strong aria-hidden="true">2.1.</strong> مبانی Axum</a></li></ol></li></ol>';
         // Set the current, active page, and reveal it if it's hidden
         let current_page = document.location.href.toString().split("#")[0].split("?")[0];
         if (current_page.endsWith("/")) {
