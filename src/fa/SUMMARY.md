@@ -3,6 +3,7 @@
 - [هسته](core/README.md)
   - [مفاهیم پایه (Rust Fundamentals)](core/rust-fundamentals.md)
   - [کنترل خطا و ایمنی](core/error-handling-and-safety.md)
+  - [Traits, Generics & the Type System](core/traits-generics-and-type-system.md)
 
 - [وب](axum/README.md)
   - [مبانی Axum](axum/axum-fundamentals.md)
