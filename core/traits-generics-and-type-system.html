@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>کنترل خطا و ایمنی - مصاحبه‌ی Rust</title>
+        <title>Traits, Generics &amp; the Type System - مصاحبه‌ی Rust</title>
 
 
         <!-- Custom HTML head -->
@@ -175,83 +175,77 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="2-کنترل-خطا-و-ایمنی"><a class="header" href="#2-کنترل-خطا-و-ایمنی">2. کنترل خطا و ایمنی</a></h1>
+                        <h1 id="3-traitها-generics-و-type-system"><a class="header" href="#3-traitها-generics-و-type-system">3. Traitها، Generics و Type System</a></h1>
 <hr />
-<h2 id="تفاوت-panic-و-result-چیست-چه-زمانی-از-هرکدام-استفاده-میکنید"><a class="header" href="#تفاوت-panic-و-result-چیست-چه-زمانی-از-هرکدام-استفاده-میکنید">تفاوت <code>panic!</code> و <code>Result</code> چیست؟ چه زمانی از هرکدام استفاده می‌کنید؟</a></h2>
+<h2 id="trait-چیست-و-چه-تفاوتی-با-interface-دارد"><a class="header" href="#trait-چیست-و-چه-تفاوتی-با-interface-دارد">trait چیست و چه تفاوتی با interface دارد؟</a></h2>
 <h3 id="پاسخ-بلند"><a class="header" href="#پاسخ-بلند">پاسخ بلند</a></h3>
-<p><code>panic!</code> بیانگر یک شکست <strong>غیرقابل‌گردش (unrecoverable)</strong> است. زمانی استفاده می‌شود که برنامه وارد وضعیتی شده که ادامهٔ اجرا منطقی نیست؛ معمولاً نقض یک invariant داخلی، باگ برنامه‌نویسی، یا شرایطی که برنامه از ابتدا فرض کرده هرگز رخ نمی‌دهد. هنگام panic، بسته به تنظیمات پروژه، یا استک unwind می‌شود یا کل فرآیند abort می‌شود.</p>
-<p>در مقابل، <code>Result&lt;T, E&gt;</code> برای خطاهای <strong>قابل‌گردش (recoverable)</strong> طراحی شده است. این نوع خطاها بخشی از رفتار طبیعی سیستم هستند: خطاهای I/O، خطاهای شبکه، خطاهای parsing یا validation. با استفاده از <code>Result</code>، خطا در امضای تابع منعکس می‌شود و caller مجبور است به‌صورت صریح آن را مدیریت یا propagate کند.</p>
-<p>قاعدهٔ طراحی:</p>
+<p><code>trait</code> در Rust مجموعه‌ای از قراردادها (متدها، روش‌ها و در صورت نیاز associated types یا consts) است که انواع می‌توانند آن را پیاده‌سازی کنند. تفاوت‌های کلیدی با مفهوم رایج <code>interface</code> در زبان‌های شیءگرا:</p>
 <ul>
-<li><code>Result</code> برای خطاهای قابل انتظار و بخشی از دامنهٔ مسئله</li>
-<li><code>panic!</code> برای نقض فرضیات داخلی و باگ‌ها<br />
-در کتابخانه‌ها و APIهای عمومی تقریباً همیشه <code>Result</code> ترجیح داده می‌شود.</li>
+<li><strong>associated types و generics:</strong> Traits می‌توانند associated types و generic parameters داشته باشند که الگوهای قوی‌تری برای abstraction فراهم می‌کند.</li>
+<li><strong>default method implementations:</strong> Traits می‌توانند پیاده‌سازی پیش‌فرض داشته باشند.</li>
+<li><strong>coherence / orphan rules:</strong> قوانین پیاده‌سازی در Rust سختگیرانه‌تر است (مثلاً orphan rule) تا تداخل implها و ناسازگاری crateها جلوگیری شود.</li>
+<li><strong>دو نوع dispatch:</strong> Traits هم می‌توانند به‌صورت static (monomorphization) و هم dynamic (trait objects) استفاده شوند؛ در برخی زبان‌های دارای interface فقط dynamic dispatch مرسوم است.</li>
+<li><strong>بدون وراثت داده‌ای:</strong> Traits رفتار را توصیف می‌کنند، نه ساختار داده‌ای یا فیلدها.</li>
 </ul>
 <h3 id="پاسخ-کوتاه"><a class="header" href="#پاسخ-کوتاه">پاسخ کوتاه</a></h3>
-<p><code>Result</code> برای خطاهای قابل‌هندل است؛ <code>panic!</code> برای باگ‌ها و شرایطی که ادامهٔ اجرا بی‌معنی است.</p>
+<p><code>trait</code> قرارداد رفتاری است؛ قوی‌تر از یک interface ساده است (associated types، default impl، انعطاف در dispatch) و قوانین coherence خاص Rust دارد.</p>
 <hr />
-<h2 id="مفهوم-unwinding-و-abort-در-panic-چیست"><a class="header" href="#مفهوم-unwinding-و-abort-در-panic-چیست">مفهوم <code>unwinding</code> و <code>abort</code> در <code>panic</code> چیست؟</a></h2>
+<h2 id="تفاوت-static-dispatch-و-dynamic-dispatch-چیست"><a class="header" href="#تفاوت-static-dispatch-و-dynamic-dispatch-چیست">تفاوت static dispatch و dynamic dispatch چیست؟</a></h2>
 <h3 id="پاسخ-بلند-1"><a class="header" href="#پاسخ-بلند-1">پاسخ بلند</a></h3>
-<p>Rust دو استراتژی برای واکنش به <code>panic</code> دارد:</p>
 <ul>
-<li>
-<p><strong>Unwinding</strong>: استک به‌تدریج باز می‌شود و destructorها (<code>Drop</code>) اجرا می‌شوند. این رفتار امکان cleanup منابع را فراهم می‌کند و با <code>catch_unwind</code> می‌توان panic را در مرزهای مشخص مهار کرد. با این حال، هزینهٔ اجرایی دارد و در تعامل با FFI می‌تواند پیچیده باشد.</p>
-</li>
-<li>
-<p><strong>Abort</strong>: فرآیند بلافاصله خاتمه می‌یابد، بدون اجرای destructorها. این روش سریع‌تر و قابل‌پیش‌بینی‌تر است و معمولاً در سیستم‌های embedded، real-time یا سناریوهایی که unwind ناامن است، استفاده می‌شود.</p>
-</li>
+<li><strong>Static dispatch (مونومورفی‌سازی):</strong> کامپایلر برای هر نوعی که trait را پیاده‌سازی کرده، یک نسخهٔ مجزا از کد تولید می‌کند (<code>generic</code>/<code>impl Trait</code> در پارامترها). نتیجه: سرعت بالا (همانند inline) و بهینه‌سازی کامل در زمان کامپایل، اما اندازهٔ باینری ممکن است افزایش یابد.</li>
+<li><strong>Dynamic dispatch (trait object):</strong> با استفاده از <code>dyn Trait</code> فراخوانی‌ها از طریق یک vtable انجام می‌شود؛ کدِ واحدی وجود دارد و انتخاب متد در زمان اجرا انجام می‌شود. مزیت: امکان نگهداری انواع مختلف در یک کالکشن واحد و کاهش اندازهٔ باینری؛ هزینه: اندک overhead اجرای vtable و از دست رفتن برخی بهینه‌سازی‌های زمان کامپایل.</li>
 </ul>
-<p>انتخاب بین این دو از طریق تنظیم <code>panic = "unwind"</code> یا <code>panic = "abort"</code> انجام می‌شود و یک تصمیم معماری محسوب می‌شود.</p>
 <h3 id="پاسخ-کوتاه-1"><a class="header" href="#پاسخ-کوتاه-1">پاسخ کوتاه</a></h3>
-<p><code>unwinding</code> استک را باز کرده و destructorها را اجرا می‌کند؛ <code>abort</code> فوراً برنامه را متوقف می‌کند بدون cleanup.</p>
+<p>Static = مونومورفی‌سازی زمان کامپایل (سریع‌تر، بدون vtable). Dynamic = trait objects با vtable در زمان اجرا (انعطاف بیشتر، هزینهٔ اندک runtime).</p>
 <hr />
-<h2 id="الگوی--چگونه-کار-میکند"><a class="header" href="#الگوی--چگونه-کار-میکند">الگوی <code>?</code> چگونه کار می‌کند؟</a></h2>
+<h2 id="dyn-trait-چه-زمانی-استفاده-میشود"><a class="header" href="#dyn-trait-چه-زمانی-استفاده-میشود"><code>dyn Trait</code> چه زمانی استفاده می‌شود؟</a></h2>
 <h3 id="پاسخ-بلند-2"><a class="header" href="#پاسخ-بلند-2">پاسخ بلند</a></h3>
-<p>عملگر <code>?</code> مکانیزمی برای propagate کردن خطا به‌شکل صریح و مختصر است. اگر مقدار از نوع <code>Result</code> باشد:</p>
+<p>از <code>dyn Trait</code> برای <strong>polymorphism دیرهنگام (runtime polymorphism)</strong> استفاده کنید وقتی نیاز دارید:</p>
 <ul>
-<li>در صورت <code>Ok</code>، مقدار unwrap شده و ادامهٔ اجرا انجام می‌شود</li>
-<li>در صورت <code>Err</code>، تابع بلافاصله با همان خطا (یا خطای تبدیل‌شده با <code>From</code>) برمی‌گردد</li>
+<li>مجموعه‌ای از مقادیر با انواع متفاوت اما رفتار یکسان را در یک کانتینر نگهداری کنید (مثلاً <code>Vec&lt;Box&lt;dyn Draw&gt;&gt;</code>).</li>
+<li>نوع دقیق پیاده‌سازی را در زمان کامپایل ندانید یا مخفی نگه دارید (ABI abstraction یا plugin-like architecture).<br />
+پیش‌نیاز: trait باید <strong>object-safe</strong> باشد (قوانینی مثل نداشتن متدهای generic در سیگنیچر و بازنگرداندن <code>Self</code> به‌صورت غیرقابل‌خبری). معمولاً از <code>Box&lt;dyn Trait&gt;</code> یا <code>&amp;dyn Trait</code> استفاده می‌شود.</li>
 </ul>
-<p>به‌صورت مفهومی، <code>?</code> جایگزین یک <code>match</code> صریح است و از traitهای مربوط به error propagation در زبان استفاده می‌کند. این الگو خوانایی را افزایش داده و کد را composable می‌کند. همین رفتار برای <code>Option</code> نیز صادق است.</p>
 <h3 id="پاسخ-کوتاه-2"><a class="header" href="#پاسخ-کوتاه-2">پاسخ کوتاه</a></h3>
-<p><code>?</code> در صورت خطا مقدار را زودهنگام برمی‌گرداند و در صورت موفقیت مقدار را unwrap می‌کند.</p>
+<p>وقتی به polymorphism در runtime نیاز دارید — مثلاً heterogeneous collections یا پنهان‌سازی نوع — از <code>dyn Trait</code> استفاده کنید و مطمئن شوید trait object-safe است.</p>
 <hr />
-<h2 id="چرا-rust-خطاها-را-در-type-system-مدل-میکند"><a class="header" href="#چرا-rust-خطاها-را-در-type-system-مدل-میکند">چرا Rust خطاها را در type system مدل می‌کند؟</a></h2>
+<h2 id="تفاوت-impl-trait-در-return-type-و-argument-چیست"><a class="header" href="#تفاوت-impl-trait-در-return-type-و-argument-چیست">تفاوت <code>impl Trait</code> در return type و argument چیست؟</a></h2>
 <h3 id="پاسخ-بلند-3"><a class="header" href="#پاسخ-بلند-3">پاسخ بلند</a></h3>
-<p>Rust خطاها را بخشی از مدل نوع می‌داند تا مدیریت آن‌ها:</p>
 <ul>
-<li><strong>صریح</strong> باشد و امکان نادیده‌گرفتن وجود نداشته باشد</li>
-<li>در <strong>زمان کامپایل</strong> بررسی شود</li>
-<li>به‌صورت <strong>ترکیب‌پذیر</strong> بین لایه‌های مختلف سیستم propagate شود</li>
-<li>مستندسازی طبیعی API را شکل دهد</li>
+<li><strong><code>impl Trait</code> در موقعیت return:</strong> نشان‌دهندهٔ یک نوع <strong>مجهول اما یکتا</strong> است که پیاده‌سازی مشخصی دارد اما برای caller مخفی است. این مناسب است وقتی می‌خواهید نوع دقیق را پنهان کنید ولی guarantee کنید که یک نوع واحد در همهٔ فراخوانی‌ها برگردانده می‌شود. مثال: <code>fn foo() -&gt; impl Iterator&lt;Item = i32&gt;</code>.</li>
+<li><strong><code>impl Trait</code> در پارامتر (argument):</strong> معادل syntactic sugar برای یک generic است؛ یعنی <code>fn f(x: impl Trait)</code> معادل <code>fn f&lt;T: Trait&gt;(x: T)</code> است. تفاوت عملی: در signature با <code>impl Trait</code> شما یک پارامتر generic اما بی‌نام دارید؛ در return موقعیت، <code>impl Trait</code> نوع را برای caller مبهم نگه می‌دارد (opaque type).<br />
+نکته: <code>impl Trait</code> در آرگومان نمی‌تواند چندین آرگومان را به یک نوع واحد الزام کند (برای آن باید generic type parameter صریح تعریف کنید).</li>
 </ul>
-<p>این رویکرد مانع بروز خطاهای کلاسیک runtime (مانند null dereference) می‌شود و باعث افزایش reliability، testability و maintainability سیستم می‌گردد؛ به‌ویژه در سیستم‌های concurrent و توزیع‌شده.</p>
 <h3 id="پاسخ-کوتاه-3"><a class="header" href="#پاسخ-کوتاه-3">پاسخ کوتاه</a></h3>
-<p>برای صریح‌بودن، بررسی در زمان کامپایل و افزایش قابلیت اطمینان؛ خطا بخشی از قرارداد type می‌شود.</p>
+<p>در return: <code>impl Trait</code> یک نوع مخفی و یکتا برمی‌گرداند (opaque). در argument: shorthand برای یک generic parameter (معادل <code>T: Trait</code>).</p>
 <hr />
-<h2 id="چه-زمانی-استفاده-از-unwrap-قابل-قبول-است"><a class="header" href="#چه-زمانی-استفاده-از-unwrap-قابل-قبول-است">چه زمانی استفاده از <code>unwrap()</code> قابل قبول است؟</a></h2>
+<h2 id="trait-bound-چیست-و-چگونه-چند-trait-را-constrain-میکنید"><a class="header" href="#trait-bound-چیست-و-چگونه-چند-trait-را-constrain-میکنید">trait bound چیست و چگونه چند trait را constrain می‌کنید؟</a></h2>
 <h3 id="پاسخ-بلند-4"><a class="header" href="#پاسخ-بلند-4">پاسخ بلند</a></h3>
-<p><code>unwrap()</code> در صورت نبود مقدار باعث <code>panic!</code> می‌شود و به همین دلیل در کد production به‌طور کلی نامطلوب است. با این حال، استفاده از آن در شرایط زیر قابل قبول است:</p>
+<p><strong>Trait bound</strong> قیدی است که مشخص می‌کند یک type parameter باید چه traitهایی را پیاده‌سازی کند، مثال: <code>fn f&lt;T: Read + Send&gt;(t: T) {}</code>. می‌توانید از syntaxهای زیر استفاده کنید:</p>
 <ul>
-<li>تست‌ها و benchmarkها</li>
-<li>نمونه‌کدها و مستندات</li>
-<li>prototypeهای کوتاه‌عمر</li>
-<li>جاهایی که invariantها به‌طور قطعی برقرار شده‌اند و failure نشان‌دهندهٔ باگ است</li>
+<li>مختصر: <code>T: Trait1 + Trait2</code></li>
+<li>با where clause برای خوانایی و حالات پیچیده:
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn f&lt;T, U&gt;(t: T, u: U)
+where
+    T: Iterator&lt;Item = U&gt;,
+    U: Display + Clone,
+{ }
+<span class="boring">}</span></code></pre></pre>
+</li>
 </ul>
-<p>در این موارد، <code>expect()</code> با پیام توضیحی معمولاً انتخاب بهتری نسبت به <code>unwrap()</code> خام است. در APIهای عمومی و کتابخانه‌ها، استفاده از <code>unwrap()</code> توصیه نمی‌شود.</p>
-<h3 id="پاسخ-کوتاه-4"><a class="header" href="#پاسخ-کوتاه-4">پاسخ کوتاه</a></h3>
-<p>در تست‌ها، نمونه‌کدها یا زمانی که invariantها تضمین شده‌اند؛ در کد تولیدی بهتر است از <code>Result</code> یا دست‌کم <code>expect</code> استفاده شود.</p>
-<hr />
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../core/rust-fundamentals.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../core/error-handling-and-safety.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../core/traits-generics-and-type-system.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../axum/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -261,11 +255,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../core/rust-fundamentals.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../core/error-handling-and-safety.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../core/traits-generics-and-type-system.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../axum/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

@@ -363,12 +363,73 @@
 <h3 id="پاسخ-کوتاه-12"><a class="header" href="#پاسخ-کوتاه-12">پاسخ کوتاه</a></h3>
 <p>در تست‌ها، نمونه‌کدها یا زمانی که invariantها تضمین شده‌اند؛ در کد تولیدی بهتر است از <code>Result</code> یا دست‌کم <code>expect</code> استفاده شود.</p>
 <hr />
+<div style="break-before: page; page-break-before: always;"></div><h1 id="3-traitها-generics-و-type-system"><a class="header" href="#3-traitها-generics-و-type-system">3. Traitها، Generics و Type System</a></h1>
+<hr />
+<h2 id="trait-چیست-و-چه-تفاوتی-با-interface-دارد"><a class="header" href="#trait-چیست-و-چه-تفاوتی-با-interface-دارد">trait چیست و چه تفاوتی با interface دارد؟</a></h2>
+<h3 id="پاسخ-بلند-13"><a class="header" href="#پاسخ-بلند-13">پاسخ بلند</a></h3>
+<p><code>trait</code> در Rust مجموعه‌ای از قراردادها (متدها، روش‌ها و در صورت نیاز associated types یا consts) است که انواع می‌توانند آن را پیاده‌سازی کنند. تفاوت‌های کلیدی با مفهوم رایج <code>interface</code> در زبان‌های شیءگرا:</p>
+<ul>
+<li><strong>associated types و generics:</strong> Traits می‌توانند associated types و generic parameters داشته باشند که الگوهای قوی‌تری برای abstraction فراهم می‌کند.</li>
+<li><strong>default method implementations:</strong> Traits می‌توانند پیاده‌سازی پیش‌فرض داشته باشند.</li>
+<li><strong>coherence / orphan rules:</strong> قوانین پیاده‌سازی در Rust سختگیرانه‌تر است (مثلاً orphan rule) تا تداخل implها و ناسازگاری crateها جلوگیری شود.</li>
+<li><strong>دو نوع dispatch:</strong> Traits هم می‌توانند به‌صورت static (monomorphization) و هم dynamic (trait objects) استفاده شوند؛ در برخی زبان‌های دارای interface فقط dynamic dispatch مرسوم است.</li>
+<li><strong>بدون وراثت داده‌ای:</strong> Traits رفتار را توصیف می‌کنند، نه ساختار داده‌ای یا فیلدها.</li>
+</ul>
+<h3 id="پاسخ-کوتاه-13"><a class="header" href="#پاسخ-کوتاه-13">پاسخ کوتاه</a></h3>
+<p><code>trait</code> قرارداد رفتاری است؛ قوی‌تر از یک interface ساده است (associated types، default impl، انعطاف در dispatch) و قوانین coherence خاص Rust دارد.</p>
+<hr />
+<h2 id="تفاوت-static-dispatch-و-dynamic-dispatch-چیست"><a class="header" href="#تفاوت-static-dispatch-و-dynamic-dispatch-چیست">تفاوت static dispatch و dynamic dispatch چیست؟</a></h2>
+<h3 id="پاسخ-بلند-14"><a class="header" href="#پاسخ-بلند-14">پاسخ بلند</a></h3>
+<ul>
+<li><strong>Static dispatch (مونومورفی‌سازی):</strong> کامپایلر برای هر نوعی که trait را پیاده‌سازی کرده، یک نسخهٔ مجزا از کد تولید می‌کند (<code>generic</code>/<code>impl Trait</code> در پارامترها). نتیجه: سرعت بالا (همانند inline) و بهینه‌سازی کامل در زمان کامپایل، اما اندازهٔ باینری ممکن است افزایش یابد.</li>
+<li><strong>Dynamic dispatch (trait object):</strong> با استفاده از <code>dyn Trait</code> فراخوانی‌ها از طریق یک vtable انجام می‌شود؛ کدِ واحدی وجود دارد و انتخاب متد در زمان اجرا انجام می‌شود. مزیت: امکان نگهداری انواع مختلف در یک کالکشن واحد و کاهش اندازهٔ باینری؛ هزینه: اندک overhead اجرای vtable و از دست رفتن برخی بهینه‌سازی‌های زمان کامپایل.</li>
+</ul>
+<h3 id="پاسخ-کوتاه-14"><a class="header" href="#پاسخ-کوتاه-14">پاسخ کوتاه</a></h3>
+<p>Static = مونومورفی‌سازی زمان کامپایل (سریع‌تر، بدون vtable). Dynamic = trait objects با vtable در زمان اجرا (انعطاف بیشتر، هزینهٔ اندک runtime).</p>
+<hr />
+<h2 id="dyn-trait-چه-زمانی-استفاده-میشود"><a class="header" href="#dyn-trait-چه-زمانی-استفاده-میشود"><code>dyn Trait</code> چه زمانی استفاده می‌شود؟</a></h2>
+<h3 id="پاسخ-بلند-15"><a class="header" href="#پاسخ-بلند-15">پاسخ بلند</a></h3>
+<p>از <code>dyn Trait</code> برای <strong>polymorphism دیرهنگام (runtime polymorphism)</strong> استفاده کنید وقتی نیاز دارید:</p>
+<ul>
+<li>مجموعه‌ای از مقادیر با انواع متفاوت اما رفتار یکسان را در یک کانتینر نگهداری کنید (مثلاً <code>Vec&lt;Box&lt;dyn Draw&gt;&gt;</code>).</li>
+<li>نوع دقیق پیاده‌سازی را در زمان کامپایل ندانید یا مخفی نگه دارید (ABI abstraction یا plugin-like architecture).<br />
+پیش‌نیاز: trait باید <strong>object-safe</strong> باشد (قوانینی مثل نداشتن متدهای generic در سیگنیچر و بازنگرداندن <code>Self</code> به‌صورت غیرقابل‌خبری). معمولاً از <code>Box&lt;dyn Trait&gt;</code> یا <code>&amp;dyn Trait</code> استفاده می‌شود.</li>
+</ul>
+<h3 id="پاسخ-کوتاه-15"><a class="header" href="#پاسخ-کوتاه-15">پاسخ کوتاه</a></h3>
+<p>وقتی به polymorphism در runtime نیاز دارید — مثلاً heterogeneous collections یا پنهان‌سازی نوع — از <code>dyn Trait</code> استفاده کنید و مطمئن شوید trait object-safe است.</p>
+<hr />
+<h2 id="تفاوت-impl-trait-در-return-type-و-argument-چیست"><a class="header" href="#تفاوت-impl-trait-در-return-type-و-argument-چیست">تفاوت <code>impl Trait</code> در return type و argument چیست؟</a></h2>
+<h3 id="پاسخ-بلند-16"><a class="header" href="#پاسخ-بلند-16">پاسخ بلند</a></h3>
+<ul>
+<li><strong><code>impl Trait</code> در موقعیت return:</strong> نشان‌دهندهٔ یک نوع <strong>مجهول اما یکتا</strong> است که پیاده‌سازی مشخصی دارد اما برای caller مخفی است. این مناسب است وقتی می‌خواهید نوع دقیق را پنهان کنید ولی guarantee کنید که یک نوع واحد در همهٔ فراخوانی‌ها برگردانده می‌شود. مثال: <code>fn foo() -&gt; impl Iterator&lt;Item = i32&gt;</code>.</li>
+<li><strong><code>impl Trait</code> در پارامتر (argument):</strong> معادل syntactic sugar برای یک generic است؛ یعنی <code>fn f(x: impl Trait)</code> معادل <code>fn f&lt;T: Trait&gt;(x: T)</code> است. تفاوت عملی: در signature با <code>impl Trait</code> شما یک پارامتر generic اما بی‌نام دارید؛ در return موقعیت، <code>impl Trait</code> نوع را برای caller مبهم نگه می‌دارد (opaque type).<br />
+نکته: <code>impl Trait</code> در آرگومان نمی‌تواند چندین آرگومان را به یک نوع واحد الزام کند (برای آن باید generic type parameter صریح تعریف کنید).</li>
+</ul>
+<h3 id="پاسخ-کوتاه-16"><a class="header" href="#پاسخ-کوتاه-16">پاسخ کوتاه</a></h3>
+<p>در return: <code>impl Trait</code> یک نوع مخفی و یکتا برمی‌گرداند (opaque). در argument: shorthand برای یک generic parameter (معادل <code>T: Trait</code>).</p>
+<hr />
+<h2 id="trait-bound-چیست-و-چگونه-چند-trait-را-constrain-میکنید"><a class="header" href="#trait-bound-چیست-و-چگونه-چند-trait-را-constrain-میکنید">trait bound چیست و چگونه چند trait را constrain می‌کنید؟</a></h2>
+<h3 id="پاسخ-بلند-17"><a class="header" href="#پاسخ-بلند-17">پاسخ بلند</a></h3>
+<p><strong>Trait bound</strong> قیدی است که مشخص می‌کند یک type parameter باید چه traitهایی را پیاده‌سازی کند، مثال: <code>fn f&lt;T: Read + Send&gt;(t: T) {}</code>. می‌توانید از syntaxهای زیر استفاده کنید:</p>
+<ul>
+<li>مختصر: <code>T: Trait1 + Trait2</code></li>
+<li>با where clause برای خوانایی و حالات پیچیده:
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn f&lt;T, U&gt;(t: T, u: U)
+where
+    T: Iterator&lt;Item = U&gt;,
+    U: Display + Clone,
+{ }
+<span class="boring">}</span></code></pre></pre>
+</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="سوالات-مصاحبه-فریمورک-axum"><a class="header" href="#سوالات-مصاحبه-فریمورک-axum">سوالات مصاحبه فریم‌ورک Axum</a></h1>
 <p>این بخش به مباحث تخصصی و سوالات مصاحبه پیرامون <strong>Axum</strong>، یکی از محبوب‌ترین و ارگونومیک‌ترین فریم‌ورک‌های وب در اکوسیستم Rust می‌پردازد. Axum بر پایه <code>tokio</code> و <code>tower</code> ساخته شده و برای توسعه سرویس‌های وب با کارایی بالا طراحی شده است.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="1-مبانی-axum"><a class="header" href="#1-مبانی-axum">1. مبانی Axum</a></h1>
 <hr />
 <h2 id="axum-چیست-و-چه-تفاوتی-با-actix--warp-دارد"><a class="header" href="#axum-چیست-و-چه-تفاوتی-با-actix--warp-دارد">Axum چیست و چه تفاوتی با Actix / Warp دارد؟</a></h2>
-<h3 id="پاسخ-بلند-13"><a class="header" href="#پاسخ-بلند-13">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-18"><a class="header" href="#پاسخ-بلند-18">پاسخ بلند</a></h3>
 <p>Axum یک وب‌فریم‌ورک مدرن برای Rust است که روی Tokio و Hyper ساخته شده و به‌طور مستقیم از اکوسیستم Tower استفاده می‌کند. تمرکز اصلی Axum بر <strong>type-safety</strong>، <strong>composability</strong> و استفاده‌ی حداکثری از type system Rust است.</p>
 <p>در مقایسه:</p>
 <ul>
@@ -377,11 +438,11 @@
 <li><strong>Axum</strong> با تکیه بر Router، extractors صریح و Tower middlewareها، ساختار واضح‌تر و قابل‌گسترش‌تری برای APIهای production-grade فراهم می‌کند.</li>
 </ul>
 <p>Axum عمداً یک abstraction نازک است و تلاش نمی‌کند همه‌چیز را خودش پیاده‌سازی کند.</p>
-<h3 id="پاسخ-کوتاه-13"><a class="header" href="#پاسخ-کوتاه-13">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-17"><a class="header" href="#پاسخ-کوتاه-17">پاسخ کوتاه</a></h3>
 <p>Axum فریم‌ورکی type-safe و مدولار روی Hyper/Tokio و Tower است؛ برخلاف Actix runtime اختصاصی ندارد و برخلاف Warp از مدل filter استفاده نمی‌کند.</p>
 <hr />
 <h2 id="چرا-axum-بر-پایهی-tower-ساخته-شده-است"><a class="header" href="#چرا-axum-بر-پایهی-tower-ساخته-شده-است">چرا Axum بر پایه‌ی Tower ساخته شده است؟</a></h2>
-<h3 id="پاسخ-بلند-14"><a class="header" href="#پاسخ-بلند-14">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-19"><a class="header" href="#پاسخ-بلند-19">پاسخ بلند</a></h3>
 <p>Tower یک abstraction استاندارد برای سرویس‌های async در Rust است که حول trait اصلی <code>Service</code> و مفهوم <code>Layer</code> (middleware) شکل گرفته است. Axum با ساختن خود بر پایه‌ی Tower:</p>
 <ul>
 <li>از middlewareهای بالغ و battle-tested استفاده می‌کند</li>
@@ -389,11 +450,11 @@
 <li>امکان ترکیب ساده‌ی concerns مثل timeout، retry، rate limit، tracing و auth را فراهم می‌کند</li>
 </ul>
 <p>در واقع Axum یک adapter انسانی‌پسند برای HTTP routing روی Tower است.</p>
-<h3 id="پاسخ-کوتاه-14"><a class="header" href="#پاسخ-کوتاه-14">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-18"><a class="header" href="#پاسخ-کوتاه-18">پاسخ کوتاه</a></h3>
 <p>برای استفاده از abstraction استاندارد <code>Service</code> و اکوسیستم آماده‌ی middlewareهای Tower.</p>
 <hr />
 <h2 id="نقش-router-در-axum-چیست"><a class="header" href="#نقش-router-در-axum-چیست">نقش <code>Router</code> در Axum چیست؟</a></h2>
-<h3 id="پاسخ-بلند-15"><a class="header" href="#پاسخ-بلند-15">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-20"><a class="header" href="#پاسخ-بلند-20">پاسخ بلند</a></h3>
 <p><code>Router</code> هسته‌ی اصلی تعریف API در Axum است. این ساختار مسئول:</p>
 <ul>
 <li>نگاشت مسیر و HTTP method به handler</li>
@@ -402,21 +463,21 @@
 <li>مدیریت state اشتراکی بین handlerها</li>
 </ul>
 <p>Router نه‌تنها مسیرها را نگه می‌دارد، بلکه boundary اصلی طراحی API و modularization در Axum محسوب می‌شود.</p>
-<h3 id="پاسخ-کوتاه-15"><a class="header" href="#پاسخ-کوتاه-15">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-19"><a class="header" href="#پاسخ-کوتاه-19">پاسخ کوتاه</a></h3>
 <p>Router وظیفه‌ی اتصال مسیرها به handlerها، ترکیب sub-routerها و اعمال middleware و state را دارد.</p>
 <hr />
 <h2 id="تفاوت-route-و-nest-چیست"><a class="header" href="#تفاوت-route-و-nest-چیست">تفاوت <code>route</code> و <code>nest</code> چیست؟</a></h2>
-<h3 id="پاسخ-بلند-16"><a class="header" href="#پاسخ-بلند-16">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-21"><a class="header" href="#پاسخ-بلند-21">پاسخ بلند</a></h3>
 <ul>
 <li><code>route</code> برای ثبت مستقیم یک مسیر مشخص و اتصال آن به handler یا service استفاده می‌شود.</li>
 <li><code>nest</code> برای mount کردن یک Router دیگر زیر یک prefix مشخص به کار می‌رود.</li>
 </ul>
 <p>در <code>nest</code>، prefix از مسیر حذف می‌شود و Router داخلی بدون آگاهی از مسیر بالادستی کار می‌کند. این ویژگی برای ماژولار کردن API (مثلاً <code>/api/v1/users</code>) حیاتی است.</p>
-<h3 id="پاسخ-کوتاه-16"><a class="header" href="#پاسخ-کوتاه-16">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-20"><a class="header" href="#پاسخ-کوتاه-20">پاسخ کوتاه</a></h3>
 <p><code>route</code> یک مسیر منفرد را ثبت می‌کند؛ <code>nest</code> یک Router کامل را زیر یک prefix قرار می‌دهد.</p>
 <hr />
 <h2 id="چرا-handlerها-در-axum-async-هستند"><a class="header" href="#چرا-handlerها-در-axum-async-هستند">چرا handlerها در Axum <code>async</code> هستند؟</a></h2>
-<h3 id="پاسخ-بلند-17"><a class="header" href="#پاسخ-بلند-17">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-22"><a class="header" href="#پاسخ-بلند-22">پاسخ بلند</a></h3>
 <p>Axum بر مبنای I/O غیرهمزمان طراحی شده و handlerها مستقیماً در مسیر اجرای async runtime (Tokio) قرار می‌گیرند. <code>async</code> بودن handlerها امکان:</p>
 <ul>
 <li>انجام I/O بدون بلوکه کردن thread</li>
@@ -424,11 +485,11 @@
 <li>استفاده‌ی مستقیم از async database clients و HTTP clients</li>
 </ul>
 <p>را فراهم می‌کند. این طراحی برای سرویس‌های high-concurrency ضروری است.</p>
-<h3 id="پاسخ-کوتاه-17"><a class="header" href="#پاسخ-کوتاه-17">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-21"><a class="header" href="#پاسخ-کوتاه-21">پاسخ کوتاه</a></h3>
 <p>چون Axum بر پایه‌ی async I/O ساخته شده و handlerها باید non-blocking و scalable باشند.</p>
 <hr />
 <h2 id="چرا-امضای-handler-باید-type-safe-باشد"><a class="header" href="#چرا-امضای-handler-باید-type-safe-باشد">چرا امضای handler باید type-safe باشد؟</a></h2>
-<h3 id="پاسخ-بلند-18"><a class="header" href="#پاسخ-بلند-18">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-23"><a class="header" href="#پاسخ-بلند-23">پاسخ بلند</a></h3>
 <p>Axum از extractors مبتنی بر type system استفاده می‌کند؛ یعنی ورودی‌های handler (path params، query، headers، body، state) همگی type-safe هستند و در زمان کامپایل بررسی می‌شوند.</p>
 <p>این رویکرد:</p>
 <ul>
@@ -437,19 +498,19 @@
 <li>تست‌پذیری و refactorپذیری را افزایش می‌دهد</li>
 </ul>
 <p>Handler در Axum عملاً یک function با وابستگی‌های صریح است، نه یک تابع با دسترسی مبهم به request.</p>
-<h3 id="پاسخ-کوتاه-18"><a class="header" href="#پاسخ-کوتاه-18">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-22"><a class="header" href="#پاسخ-کوتاه-22">پاسخ کوتاه</a></h3>
 <p>برای اینکه استخراج داده از request در زمان کامپایل بررسی شود و خطاهای runtime حذف شوند.</p>
 <hr />
 <div style="break-before: page; page-break-before: always;"></div><h1 id="2-handlerها-و-extractorها"><a class="header" href="#2-handlerها-و-extractorها">2. Handlerها و Extractorها</a></h1>
 <hr />
 <h2 id="extractor-چیست-و-چگونه-کار-میکند"><a class="header" href="#extractor-چیست-و-چگونه-کار-میکند">extractor چیست و چگونه کار می‌کند؟</a></h2>
-<h3 id="پاسخ-بلند-19"><a class="header" href="#پاسخ-بلند-19">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-24"><a class="header" href="#پاسخ-بلند-24">پاسخ بلند</a></h3>
 <p>در Axum، <strong>extractor</strong> نوعی است که از یک درخواست HTTP مقدار/اطلاعات خاصی را استخراج می‌کند و آن را به‌عنوان آرگومان به handler تحویل می‌دهد. یک extractor با یکی از traitهای <code>FromRequestParts</code> (برای بخش‌های درخواست مثل headers, path, query, extensions) یا <code>FromRequest</code> (برای استخراج‌هایی که باید body را مصرف کنند) پیاده‌سازی می‌شود. قبل از فراخوانی handler، Axum هر extractor را اجرا می‌کند و نتیجهٔ موفق را به عنوان آرگومان به handler می‌دهد؛ اگر extraction شکست بخورد، handler اجرا نخواهد شد و یک rejection که قابل تبدیل به <code>Response</code> است بازگردانده می‌شود. :contentReference[oaicite:0]{index=0}</p>
-<h3 id="پاسخ-کوتاه-19"><a class="header" href="#پاسخ-کوتاه-19">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-23"><a class="header" href="#پاسخ-کوتاه-23">پاسخ کوتاه</a></h3>
 <p>Extractor نوعی است که بخش‌هایی از <code>Request</code> را می‌خواند/پارسه می‌کند و به handler به‌صورت پارامتر تحویل می‌دهد؛ پیاده‌سازی آن معمولاً از <code>FromRequestParts</code> یا <code>FromRequest</code> است. :contentReference[oaicite:1]{index=1}</p>
 <hr />
 <h2 id="تفاوت-jsont-formt-patht-queryt-چیست"><a class="header" href="#تفاوت-jsont-formt-patht-queryt-چیست">تفاوت <code>Json&lt;T&gt;</code>، <code>Form&lt;T&gt;</code>، <code>Path&lt;T&gt;</code>، <code>Query&lt;T&gt;</code> چیست؟</a></h2>
-<h3 id="پاسخ-بلند-20"><a class="header" href="#پاسخ-بلند-20">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-25"><a class="header" href="#پاسخ-بلند-25">پاسخ بلند</a></h3>
 <ul>
 <li><code>Json&lt;T&gt;</code>: بدنهٔ درخواست را به‌عنوان JSON خوانده و با <code>serde::Deserialize</code> به <code>T</code> تبدیل می‌کند — <strong>مصرف‌کنندهٔ body</strong> است (پس باید آخرین extractor باشد اگر body مصرفی دیگری نیست).</li>
 <li><code>Form&lt;T&gt;</code>: بدنهٔ فرم x-www-form-urlencoded را پارس می‌کند و به <code>T</code> تبدیل می‌کند (نیز body-consuming).</li>
@@ -457,28 +518,28 @@
 <li><code>Query&lt;T&gt;</code>: query string را پارس کرده و به <code>T</code> تبدیل می‌کند (برای پارامترهای optional یا pagination و غیره مناسب است).<br />
 هر یک از این‌ها نوعی extractor هستند و رفتار خاص خود را در صورت خطا (مثلاً بدفرمت بودن JSON یا فقدان پارامتر لازم) با یک rejection بازمی‌گردانند. :contentReference[oaicite:2]{index=2}</li>
 </ul>
-<h3 id="پاسخ-کوتاه-20"><a class="header" href="#پاسخ-کوتاه-20">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-24"><a class="header" href="#پاسخ-کوتاه-24">پاسخ کوتاه</a></h3>
 <p><code>Json</code>/<code>Form</code> بدنه را مصرف و پارس می‌کنند؛ <code>Path</code> پارامترهای مسیر و <code>Query</code> پارامترهای query string را استخراج می‌کند. :contentReference[oaicite:3]{index=3}</p>
 <hr />
 <h2 id="ترتیب-اجرای-extractorها-چگونه-است"><a class="header" href="#ترتیب-اجرای-extractorها-چگونه-است">ترتیب اجرای extractorها چگونه است؟</a></h2>
-<h3 id="پاسخ-بلند-21"><a class="header" href="#پاسخ-بلند-21">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-26"><a class="header" href="#پاسخ-بلند-26">پاسخ بلند</a></h3>
 <p>Extractorها <strong>همیشه به ترتیب پارامترهای تابع (از چپ به راست)</strong> اجرا می‌شوند. دلیل مهم این قاعده این است که بدنهٔ درخواست یک استریم async است که فقط یک‌بار قابل مصرف است؛ بنابراین extractorهایی که body را مصرف می‌کنند باید آخرین پارامتر باشند و Axum این محدودیت را از طریق ترتیب اجرا و نوع traitها اعمال می‌کند. به‌طور خلاصه: ترتیب پارامترها اهمیت دارد و extractorهای مصرف‌کنندهٔ body را آخر قرار دهید. :contentReference[oaicite:4]{index=4}</p>
-<h3 id="پاسخ-کوتاه-21"><a class="header" href="#پاسخ-کوتاه-21">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-25"><a class="header" href="#پاسخ-کوتاه-25">پاسخ کوتاه</a></h3>
 <p>Axum extractors را از چپ به راست (ترتیب پارامترهای handler) اجرا می‌کند؛ extractorهایی که body را مصرف می‌کنند باید آخر باشند. :contentReference[oaicite:5]{index=5}</p>
 <hr />
 <h2 id="اگر-یک-extractor-fail-شود-چه-اتفاقی-میافتد"><a class="header" href="#اگر-یک-extractor-fail-شود-چه-اتفاقی-میافتد">اگر یک extractor fail شود چه اتفاقی می‌افتد؟</a></h2>
-<h3 id="پاسخ-بلند-22"><a class="header" href="#پاسخ-بلند-22">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-27"><a class="header" href="#پاسخ-بلند-27">پاسخ بلند</a></h3>
 <p>وقتی یک extractor شکست می‌خورد، آن extractor یک نوع <strong>rejection</strong> برمی‌گرداند (نوع مرتبط با extractor که <code>IntoResponse</code> را پیاده‌سازی می‌کند). در این حالت:</p>
 <ul>
 <li>اجرای سایر extractorها/handler متوقف می‌شود.</li>
 <li>Router پاسخ HTTP را با تبدیل rejection به <code>Response</code> ارسال می‌کند (مثلاً 400 برای JSON نامعتبر یا 404 برای مسیر نامناسب، بسته به نوع rejection).<br />
 برای دسترسی به خطای درون یک extractor یا سفارشی‌سازی پاسخ خطا می‌توان extractor را به صورت <code>Result&lt;T, T::Rejection&gt;</code> در آرگومان handler گرفت یا از ابزارهایی مانند <code>WithRejection</code> / تعریف extractor سفارشی استفاده کرد. :contentReference[oaicite:6]{index=6}</li>
 </ul>
-<h3 id="پاسخ-کوتاه-22"><a class="header" href="#پاسخ-کوتاه-22">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-26"><a class="header" href="#پاسخ-کوتاه-26">پاسخ کوتاه</a></h3>
 <p>در صورت شکست، extractor یک rejection بازمی‌گرداند و handler اجرا نمی‌شود — آن rejection به <code>Response</code> تبدیل و به کاربر برگردانده می‌شود. :contentReference[oaicite:7]{index=7}</p>
 <hr />
 <h2 id="چگونه-extractor-سفارشی-مینویسید"><a class="header" href="#چگونه-extractor-سفارشی-مینویسید">چگونه extractor سفارشی می‌نویسید؟</a></h2>
-<h3 id="پاسخ-بلند-23"><a class="header" href="#پاسخ-بلند-23">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-28"><a class="header" href="#پاسخ-بلند-28">پاسخ بلند</a></h3>
 <p>دو مسیر اصلی وجود دارد:</p>
 <ol>
 <li>اگر نیاز فقط به خواندن بخش‌های request (headers, path, query, extensions) دارید، <code>FromRequestParts&lt;S&gt;</code> را پیاده‌سازی کنید.</li>
@@ -507,19 +568,19 @@ where
 <div style="break-before: page; page-break-before: always;"></div><h1 id="3-response-و-error-handling-axum--responses--error-handling"><a class="header" href="#3-response-و-error-handling-axum--responses--error-handling">3. Response و Error Handling (Axum — Responses &amp; Error Handling)</a></h1>
 <hr />
 <h2 id="چه-typeهایی-میتوانند-response-باشند"><a class="header" href="#چه-typeهایی-میتوانند-response-باشند">چه typeهایی می‌توانند response باشند؟</a></h2>
-<h3 id="پاسخ-بلند-24"><a class="header" href="#پاسخ-بلند-24">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-29"><a class="header" href="#پاسخ-بلند-29">پاسخ بلند</a></h3>
 <p>هر نوعی که <code>IntoResponse</code> را پیاده‌سازی کرده باشد می‌تواند از یک handler برگردد. Axum برای انواع رایج (<code>String</code>, <code>&amp;'static str</code>, <code>StatusCode</code>, <code>http::Response&lt;Body&gt;</code>, <code>Json&lt;T&gt;</code>، tupleهایی مثل <code>(StatusCode, HeaderMap, body)</code> و غیره) پیاده‌سازی آماده دارد، بنابراین معمولاً می‌توانید مستقیم یک مقدار ساده یا یک tuple برگردانید و Axum آن را به <code>Response</code> تبدیل می‌کند. اگر نوع دلخواه شما این trait را نداشته باشد، می‌توانید آن را خودتان پیاده‌سازی کنید تا مستقیماً از handler قابل برگشت باشد. :contentReference[oaicite:0]{index=0}</p>
-<h3 id="پاسخ-کوتاه-23"><a class="header" href="#پاسخ-کوتاه-23">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-27"><a class="header" href="#پاسخ-کوتاه-27">پاسخ کوتاه</a></h3>
 <p>هر چیزی که <code>IntoResponse</code> را پیاده‌سازی کند — Axum برای بسیاری از انواع رایج پیاده‌سازی آماده دارد. :contentReference[oaicite:1]{index=1}</p>
 <hr />
 <h2 id="trait-intoresponse-چگونه-کار-میکند"><a class="header" href="#trait-intoresponse-چگونه-کار-میکند">trait <code>IntoResponse</code> چگونه کار می‌کند؟</a></h2>
-<h3 id="پاسخ-بلند-25"><a class="header" href="#پاسخ-بلند-25">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-30"><a class="header" href="#پاسخ-بلند-30">پاسخ بلند</a></h3>
 <p><code>IntoResponse</code> متدی <code>into_response(self) -&gt; Response</code> فراهم می‌کند که نوع حامل را به یک <code>http::Response&lt;Body&gt;</code> تبدیل می‌کند. وقتی handler <code>impl IntoResponse</code> یا نوعی که <code>IntoResponse</code> را پیاده‌سازی کرده برمی‌گرداند، Axum آن را فراخوانی می‌کند تا پاسخ HTTP واقعی ساخته شود. این سازوکار امکان انعطاف‌پذیری بالا (مثلاً بازگرداندن tuple برای تعیین status/headers/body) و یکپارچگی با انواع کاربردی مانند <code>Json&lt;T&gt;</code> را فراهم می‌سازد. اغلب لازم نیست خودتان <code>IntoResponse</code> را بنویسید مگر برای error typeهای سفارشی یا رفتارهای ویژه. :contentReference[oaicite:2]{index=2}</p>
-<h3 id="پاسخ-کوتاه-24"><a class="header" href="#پاسخ-کوتاه-24">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-28"><a class="header" href="#پاسخ-کوتاه-28">پاسخ کوتاه</a></h3>
 <p>این trait مقدار را به یک <code>http::Response</code> تبدیل می‌کند؛ Axum این تبدیل را برای هر خروجی handler انجام می‌دهد. :contentReference[oaicite:3]{index=3}</p>
 <hr />
 <h2 id="چگونه-error-مرکزی-global-error-handling-پیاده-میکنید"><a class="header" href="#چگونه-error-مرکزی-global-error-handling-پیاده-میکنید">چگونه error مرکزی (global error handling) پیاده می‌کنید؟</a></h2>
-<h3 id="پاسخ-بلند-26"><a class="header" href="#پاسخ-بلند-26">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-31"><a class="header" href="#پاسخ-بلند-31">پاسخ بلند</a></h3>
 <p>الگوهای معمول برای هندلینگ سراسری در Axum:</p>
 <ol>
 <li>
@@ -533,11 +594,11 @@ where
 </li>
 </ol>
 <p>نکته عملی: middlewareها معمولاً خطاها را به شکل <code>Result</code> یا <code>BoxError</code> برمی‌گردانند؛ از <code>HandleErrorLayer</code> یا یک layer سفارشی استفاده کنید تا log/metric بگیرید و یک <code>Response</code> یکنواخت بسازید. :contentReference[oaicite:6]{index=6}</p>
-<h3 id="پاسخ-کوتاه-25"><a class="header" href="#پاسخ-کوتاه-25">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-29"><a class="header" href="#پاسخ-کوتاه-29">پاسخ کوتاه</a></h3>
 <p>از ترکیب Tower layers (مثلاً <code>HandleErrorLayer</code>) برای خطاهای لایه‌ای و پیاده‌سازی <code>IntoResponse</code> روی error typeهای دامنه برای mapping دقیق خطا به status/body استفاده کنید. :contentReference[oaicite:7]{index=7}</p>
 <hr />
 <h2 id="تفاوت-برگرداندن-resultt-e-و-impl-intoresponse-چیست"><a class="header" href="#تفاوت-برگرداندن-resultt-e-و-impl-intoresponse-چیست">تفاوت برگرداندن <code>Result&lt;T, E&gt;</code> و <code>impl IntoResponse</code> چیست؟</a></h2>
-<h3 id="پاسخ-بلند-27"><a class="header" href="#پاسخ-بلند-27">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-32"><a class="header" href="#پاسخ-بلند-32">پاسخ بلند</a></h3>
 <ul>
 <li>
 <p><code>impl IntoResponse</code>: تابع فقط می‌تواند <strong>یک</strong> نوع بازگشتی را داشته باشد؛ اگر بخواهید در شاخه‌های مختلف انواع متفاوتی برگردانید، <code>impl Trait</code> محدودیت دارد و گاهی لازم است به صورت صریح یک <code>Response</code> یا یک common enum برگردانید. علاوه بر این، <code>impl IntoResponse</code> مناسب وقتی است که موفقیت و خطا در یک نوع واحد نمایش داده شوند. :contentReference[oaicite:8]{index=8}</p>
@@ -546,11 +607,11 @@ where
 <p><code>Result&lt;T, E&gt;</code>: بیان صریحِ احتمال خطاست. Axum برای <code>Result</code> نیز پیاده‌سازی دارد، اما هر دو شاخه (<code>T</code> و <code>E</code>) باید <code>IntoResponse</code> را پیاده‌سازی کنند تا تبدیل خودکار به <code>Response</code> انجام شود. بنابراین <code>Result</code> به شما اجازه می‌دهد خطا را جدا نگه دارید و آن را با یک <code>IntoResponse</code> مناسب هندل کنید. اگر <code>E</code> انواع مختلفی داشته باشد، معمولاً یک enum خطا می‌سازید و برای آن <code>IntoResponse</code> پیاده‌سازی می‌کنید. :contentReference[oaicite:9]{index=9}</p>
 </li>
 </ul>
-<h3 id="پاسخ-کوتاه-26"><a class="header" href="#پاسخ-کوتاه-26">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-30"><a class="header" href="#پاسخ-کوتاه-30">پاسخ کوتاه</a></h3>
 <p><code>impl IntoResponse</code> برمی‌گرداند یک نوع قابل تبدیل به پاسخ؛ <code>Result&lt;T, E&gt;</code> صراحتاً خطا را نشان می‌دهد — ولی برای تبدیل خودکار، هم <code>T</code> و هم <code>E</code> باید <code>IntoResponse</code> را پیاده‌سازی کنند. :contentReference[oaicite:10]{index=10}</p>
 <hr />
 <h2 id="چگونه-http-status-code-و-body-را-همزمان-کنترل-میکنید"><a class="header" href="#چگونه-http-status-code-و-body-را-همزمان-کنترل-میکنید">چگونه HTTP status code و body را همزمان کنترل می‌کنید؟</a></h2>
-<h3 id="پاسخ-بلند-28"><a class="header" href="#پاسخ-بلند-28">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-33"><a class="header" href="#پاسخ-بلند-33">پاسخ بلند</a></h3>
 <p>چند راه معمول:</p>
 <ul>
 <li>
@@ -563,11 +624,11 @@ where
 <p>در صورت استفاده از <code>Result&lt;T, E&gt;</code>، نوع <code>E</code> را طوری پیاده‌سازی کنید که هنگام <code>Err</code> یک status مناسب و body توضیحی (مثلاً JSON با فیلدهای خطا) تولید کند (یعنی <code>IntoResponse</code> برای <code>E</code>). :contentReference[oaicite:13]{index=13}</p>
 </li>
 </ul>
-<h3 id="پاسخ-کوتاه-27"><a class="header" href="#پاسخ-کوتاه-27">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-31"><a class="header" href="#پاسخ-کوتاه-31">پاسخ کوتاه</a></h3>
 <p>برای حالت‌های ساده از tuple مثل <code>(StatusCode, body)</code> استفاده کنید؛ برای کنترل کامل از <code>http::Response</code>؛ یا error type را طوری <code>IntoResponse</code> کنید که status+body مناسب تولید کند. :contentReference[oaicite:14]{index=14}</p>
 <hr />
 <h2 id="بهترین-الگو-برای-error-type-در-axum-چیست"><a class="header" href="#بهترین-الگو-برای-error-type-در-axum-چیست">بهترین الگو برای error type در Axum چیست؟</a></h2>
-<h3 id="پاسخ-بلند-29"><a class="header" href="#پاسخ-بلند-29">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-34"><a class="header" href="#پاسخ-بلند-34">پاسخ بلند</a></h3>
 <p>الگوی رایج و مؤثر:</p>
 <ol>
 <li><strong>یک <code>enum</code> خطا در سطح application</strong> که تمام خطاهای منطقی را پوشش می‌دهد (مثلاً <code>enum AppError { NotFound, Validation(ValidationError), Auth(AuthError), Internal(anyhow::Error) }</code>).</li>
@@ -576,7 +637,7 @@ where
 <li>از logging/observability در نقطهٔ central (مثلاً در <code>IntoResponse</code> برای <code>Internal</code> یا در یک middleware) استفاده کنید تا stack/context لاگ شود اما پاسخ به کاربر امن بماند.</li>
 </ol>
 <p>این الگو ترکیب type-safety، خوانایی و امکان unit/integration testing را فراهم می‌کند و با اکوسیستم Axum/Tower به‌خوبی کار می‌کند. :contentReference[oaicite:15]{index=15}</p>
-<h3 id="پاسخ-کوتاه-28"><a class="header" href="#پاسخ-کوتاه-28">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-32"><a class="header" href="#پاسخ-کوتاه-32">پاسخ کوتاه</a></h3>
 <p>یک <code>enum</code> مرکزی برای خطاها + <code>thiserror</code> برای derive + یک <code>impl IntoResponse</code> برای mapping به <code>StatusCode</code> و JSON body. لاگینگ و تبدیل خطاهای داخلی در middleware یا داخل <code>IntoResponse</code> انجام شود. :contentReference[oaicite:16]{index=16}</p>
 <hr />
 
