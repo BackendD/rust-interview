@@ -296,12 +296,79 @@
 <h3 id="پاسخ-کوتاه-7"><a class="header" href="#پاسخ-کوتاه-7">پاسخ کوتاه</a></h3>
 <p>چون <code>Option</code> و <code>Result</code> خطا و نبود مقدار را صریح و type-safe می‌کنند و مشکلات کلاسیک <code>null</code> را حذف می‌کنند.</p>
 <hr />
-<div style="break-before: page; page-break-before: always;"></div><div style="break-before: page; page-break-before: always;"></div><h1 id="سوالات-مصاحبه-فریمورک-axum"><a class="header" href="#سوالات-مصاحبه-فریمورک-axum">سوالات مصاحبه فریم‌ورک Axum</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="2-کنترل-خطا-و-ایمنی"><a class="header" href="#2-کنترل-خطا-و-ایمنی">2. کنترل خطا و ایمنی</a></h1>
+<hr />
+<h2 id="تفاوت-panic-و-result-چیست-چه-زمانی-از-هرکدام-استفاده-میکنید"><a class="header" href="#تفاوت-panic-و-result-چیست-چه-زمانی-از-هرکدام-استفاده-میکنید">تفاوت <code>panic!</code> و <code>Result</code> چیست؟ چه زمانی از هرکدام استفاده می‌کنید؟</a></h2>
+<h3 id="پاسخ-بلند-8"><a class="header" href="#پاسخ-بلند-8">پاسخ بلند</a></h3>
+<p><code>panic!</code> بیانگر یک شکست <strong>غیرقابل‌گردش (unrecoverable)</strong> است. زمانی استفاده می‌شود که برنامه وارد وضعیتی شده که ادامهٔ اجرا منطقی نیست؛ معمولاً نقض یک invariant داخلی، باگ برنامه‌نویسی، یا شرایطی که برنامه از ابتدا فرض کرده هرگز رخ نمی‌دهد. هنگام panic، بسته به تنظیمات پروژه، یا استک unwind می‌شود یا کل فرآیند abort می‌شود.</p>
+<p>در مقابل، <code>Result&lt;T, E&gt;</code> برای خطاهای <strong>قابل‌گردش (recoverable)</strong> طراحی شده است. این نوع خطاها بخشی از رفتار طبیعی سیستم هستند: خطاهای I/O، خطاهای شبکه، خطاهای parsing یا validation. با استفاده از <code>Result</code>، خطا در امضای تابع منعکس می‌شود و caller مجبور است به‌صورت صریح آن را مدیریت یا propagate کند.</p>
+<p>قاعدهٔ طراحی:</p>
+<ul>
+<li><code>Result</code> برای خطاهای قابل انتظار و بخشی از دامنهٔ مسئله</li>
+<li><code>panic!</code> برای نقض فرضیات داخلی و باگ‌ها<br />
+در کتابخانه‌ها و APIهای عمومی تقریباً همیشه <code>Result</code> ترجیح داده می‌شود.</li>
+</ul>
+<h3 id="پاسخ-کوتاه-8"><a class="header" href="#پاسخ-کوتاه-8">پاسخ کوتاه</a></h3>
+<p><code>Result</code> برای خطاهای قابل‌هندل است؛ <code>panic!</code> برای باگ‌ها و شرایطی که ادامهٔ اجرا بی‌معنی است.</p>
+<hr />
+<h2 id="مفهوم-unwinding-و-abort-در-panic-چیست"><a class="header" href="#مفهوم-unwinding-و-abort-در-panic-چیست">مفهوم <code>unwinding</code> و <code>abort</code> در <code>panic</code> چیست؟</a></h2>
+<h3 id="پاسخ-بلند-9"><a class="header" href="#پاسخ-بلند-9">پاسخ بلند</a></h3>
+<p>Rust دو استراتژی برای واکنش به <code>panic</code> دارد:</p>
+<ul>
+<li>
+<p><strong>Unwinding</strong>: استک به‌تدریج باز می‌شود و destructorها (<code>Drop</code>) اجرا می‌شوند. این رفتار امکان cleanup منابع را فراهم می‌کند و با <code>catch_unwind</code> می‌توان panic را در مرزهای مشخص مهار کرد. با این حال، هزینهٔ اجرایی دارد و در تعامل با FFI می‌تواند پیچیده باشد.</p>
+</li>
+<li>
+<p><strong>Abort</strong>: فرآیند بلافاصله خاتمه می‌یابد، بدون اجرای destructorها. این روش سریع‌تر و قابل‌پیش‌بینی‌تر است و معمولاً در سیستم‌های embedded، real-time یا سناریوهایی که unwind ناامن است، استفاده می‌شود.</p>
+</li>
+</ul>
+<p>انتخاب بین این دو از طریق تنظیم <code>panic = "unwind"</code> یا <code>panic = "abort"</code> انجام می‌شود و یک تصمیم معماری محسوب می‌شود.</p>
+<h3 id="پاسخ-کوتاه-9"><a class="header" href="#پاسخ-کوتاه-9">پاسخ کوتاه</a></h3>
+<p><code>unwinding</code> استک را باز کرده و destructorها را اجرا می‌کند؛ <code>abort</code> فوراً برنامه را متوقف می‌کند بدون cleanup.</p>
+<hr />
+<h2 id="الگوی--چگونه-کار-میکند"><a class="header" href="#الگوی--چگونه-کار-میکند">الگوی <code>?</code> چگونه کار می‌کند؟</a></h2>
+<h3 id="پاسخ-بلند-10"><a class="header" href="#پاسخ-بلند-10">پاسخ بلند</a></h3>
+<p>عملگر <code>?</code> مکانیزمی برای propagate کردن خطا به‌شکل صریح و مختصر است. اگر مقدار از نوع <code>Result</code> باشد:</p>
+<ul>
+<li>در صورت <code>Ok</code>، مقدار unwrap شده و ادامهٔ اجرا انجام می‌شود</li>
+<li>در صورت <code>Err</code>، تابع بلافاصله با همان خطا (یا خطای تبدیل‌شده با <code>From</code>) برمی‌گردد</li>
+</ul>
+<p>به‌صورت مفهومی، <code>?</code> جایگزین یک <code>match</code> صریح است و از traitهای مربوط به error propagation در زبان استفاده می‌کند. این الگو خوانایی را افزایش داده و کد را composable می‌کند. همین رفتار برای <code>Option</code> نیز صادق است.</p>
+<h3 id="پاسخ-کوتاه-10"><a class="header" href="#پاسخ-کوتاه-10">پاسخ کوتاه</a></h3>
+<p><code>?</code> در صورت خطا مقدار را زودهنگام برمی‌گرداند و در صورت موفقیت مقدار را unwrap می‌کند.</p>
+<hr />
+<h2 id="چرا-rust-خطاها-را-در-type-system-مدل-میکند"><a class="header" href="#چرا-rust-خطاها-را-در-type-system-مدل-میکند">چرا Rust خطاها را در type system مدل می‌کند؟</a></h2>
+<h3 id="پاسخ-بلند-11"><a class="header" href="#پاسخ-بلند-11">پاسخ بلند</a></h3>
+<p>Rust خطاها را بخشی از مدل نوع می‌داند تا مدیریت آن‌ها:</p>
+<ul>
+<li><strong>صریح</strong> باشد و امکان نادیده‌گرفتن وجود نداشته باشد</li>
+<li>در <strong>زمان کامپایل</strong> بررسی شود</li>
+<li>به‌صورت <strong>ترکیب‌پذیر</strong> بین لایه‌های مختلف سیستم propagate شود</li>
+<li>مستندسازی طبیعی API را شکل دهد</li>
+</ul>
+<p>این رویکرد مانع بروز خطاهای کلاسیک runtime (مانند null dereference) می‌شود و باعث افزایش reliability، testability و maintainability سیستم می‌گردد؛ به‌ویژه در سیستم‌های concurrent و توزیع‌شده.</p>
+<h3 id="پاسخ-کوتاه-11"><a class="header" href="#پاسخ-کوتاه-11">پاسخ کوتاه</a></h3>
+<p>برای صریح‌بودن، بررسی در زمان کامپایل و افزایش قابلیت اطمینان؛ خطا بخشی از قرارداد type می‌شود.</p>
+<hr />
+<h2 id="چه-زمانی-استفاده-از-unwrap-قابل-قبول-است"><a class="header" href="#چه-زمانی-استفاده-از-unwrap-قابل-قبول-است">چه زمانی استفاده از <code>unwrap()</code> قابل قبول است؟</a></h2>
+<h3 id="پاسخ-بلند-12"><a class="header" href="#پاسخ-بلند-12">پاسخ بلند</a></h3>
+<p><code>unwrap()</code> در صورت نبود مقدار باعث <code>panic!</code> می‌شود و به همین دلیل در کد production به‌طور کلی نامطلوب است. با این حال، استفاده از آن در شرایط زیر قابل قبول است:</p>
+<ul>
+<li>تست‌ها و benchmarkها</li>
+<li>نمونه‌کدها و مستندات</li>
+<li>prototypeهای کوتاه‌عمر</li>
+<li>جاهایی که invariantها به‌طور قطعی برقرار شده‌اند و failure نشان‌دهندهٔ باگ است</li>
+</ul>
+<p>در این موارد، <code>expect()</code> با پیام توضیحی معمولاً انتخاب بهتری نسبت به <code>unwrap()</code> خام است. در APIهای عمومی و کتابخانه‌ها، استفاده از <code>unwrap()</code> توصیه نمی‌شود.</p>
+<h3 id="پاسخ-کوتاه-12"><a class="header" href="#پاسخ-کوتاه-12">پاسخ کوتاه</a></h3>
+<p>در تست‌ها، نمونه‌کدها یا زمانی که invariantها تضمین شده‌اند؛ در کد تولیدی بهتر است از <code>Result</code> یا دست‌کم <code>expect</code> استفاده شود.</p>
+<hr />
+<div style="break-before: page; page-break-before: always;"></div><h1 id="سوالات-مصاحبه-فریمورک-axum"><a class="header" href="#سوالات-مصاحبه-فریمورک-axum">سوالات مصاحبه فریم‌ورک Axum</a></h1>
 <p>این بخش به مباحث تخصصی و سوالات مصاحبه پیرامون <strong>Axum</strong>، یکی از محبوب‌ترین و ارگونومیک‌ترین فریم‌ورک‌های وب در اکوسیستم Rust می‌پردازد. Axum بر پایه <code>tokio</code> و <code>tower</code> ساخته شده و برای توسعه سرویس‌های وب با کارایی بالا طراحی شده است.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="1-مبانی-axum"><a class="header" href="#1-مبانی-axum">1. مبانی Axum</a></h1>
 <hr />
 <h2 id="axum-چیست-و-چه-تفاوتی-با-actix--warp-دارد"><a class="header" href="#axum-چیست-و-چه-تفاوتی-با-actix--warp-دارد">Axum چیست و چه تفاوتی با Actix / Warp دارد؟</a></h2>
-<h3 id="پاسخ-بلند-8"><a class="header" href="#پاسخ-بلند-8">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-13"><a class="header" href="#پاسخ-بلند-13">پاسخ بلند</a></h3>
 <p>Axum یک وب‌فریم‌ورک مدرن برای Rust است که روی Tokio و Hyper ساخته شده و به‌طور مستقیم از اکوسیستم Tower استفاده می‌کند. تمرکز اصلی Axum بر <strong>type-safety</strong>، <strong>composability</strong> و استفاده‌ی حداکثری از type system Rust است.</p>
 <p>در مقایسه:</p>
 <ul>
@@ -310,11 +377,11 @@
 <li><strong>Axum</strong> با تکیه بر Router، extractors صریح و Tower middlewareها، ساختار واضح‌تر و قابل‌گسترش‌تری برای APIهای production-grade فراهم می‌کند.</li>
 </ul>
 <p>Axum عمداً یک abstraction نازک است و تلاش نمی‌کند همه‌چیز را خودش پیاده‌سازی کند.</p>
-<h3 id="پاسخ-کوتاه-8"><a class="header" href="#پاسخ-کوتاه-8">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-13"><a class="header" href="#پاسخ-کوتاه-13">پاسخ کوتاه</a></h3>
 <p>Axum فریم‌ورکی type-safe و مدولار روی Hyper/Tokio و Tower است؛ برخلاف Actix runtime اختصاصی ندارد و برخلاف Warp از مدل filter استفاده نمی‌کند.</p>
 <hr />
 <h2 id="چرا-axum-بر-پایهی-tower-ساخته-شده-است"><a class="header" href="#چرا-axum-بر-پایهی-tower-ساخته-شده-است">چرا Axum بر پایه‌ی Tower ساخته شده است؟</a></h2>
-<h3 id="پاسخ-بلند-9"><a class="header" href="#پاسخ-بلند-9">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-14"><a class="header" href="#پاسخ-بلند-14">پاسخ بلند</a></h3>
 <p>Tower یک abstraction استاندارد برای سرویس‌های async در Rust است که حول trait اصلی <code>Service</code> و مفهوم <code>Layer</code> (middleware) شکل گرفته است. Axum با ساختن خود بر پایه‌ی Tower:</p>
 <ul>
 <li>از middlewareهای بالغ و battle-tested استفاده می‌کند</li>
@@ -322,11 +389,11 @@
 <li>امکان ترکیب ساده‌ی concerns مثل timeout، retry، rate limit، tracing و auth را فراهم می‌کند</li>
 </ul>
 <p>در واقع Axum یک adapter انسانی‌پسند برای HTTP routing روی Tower است.</p>
-<h3 id="پاسخ-کوتاه-9"><a class="header" href="#پاسخ-کوتاه-9">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-14"><a class="header" href="#پاسخ-کوتاه-14">پاسخ کوتاه</a></h3>
 <p>برای استفاده از abstraction استاندارد <code>Service</code> و اکوسیستم آماده‌ی middlewareهای Tower.</p>
 <hr />
 <h2 id="نقش-router-در-axum-چیست"><a class="header" href="#نقش-router-در-axum-چیست">نقش <code>Router</code> در Axum چیست؟</a></h2>
-<h3 id="پاسخ-بلند-10"><a class="header" href="#پاسخ-بلند-10">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-15"><a class="header" href="#پاسخ-بلند-15">پاسخ بلند</a></h3>
 <p><code>Router</code> هسته‌ی اصلی تعریف API در Axum است. این ساختار مسئول:</p>
 <ul>
 <li>نگاشت مسیر و HTTP method به handler</li>
@@ -335,21 +402,21 @@
 <li>مدیریت state اشتراکی بین handlerها</li>
 </ul>
 <p>Router نه‌تنها مسیرها را نگه می‌دارد، بلکه boundary اصلی طراحی API و modularization در Axum محسوب می‌شود.</p>
-<h3 id="پاسخ-کوتاه-10"><a class="header" href="#پاسخ-کوتاه-10">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-15"><a class="header" href="#پاسخ-کوتاه-15">پاسخ کوتاه</a></h3>
 <p>Router وظیفه‌ی اتصال مسیرها به handlerها، ترکیب sub-routerها و اعمال middleware و state را دارد.</p>
 <hr />
 <h2 id="تفاوت-route-و-nest-چیست"><a class="header" href="#تفاوت-route-و-nest-چیست">تفاوت <code>route</code> و <code>nest</code> چیست؟</a></h2>
-<h3 id="پاسخ-بلند-11"><a class="header" href="#پاسخ-بلند-11">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-16"><a class="header" href="#پاسخ-بلند-16">پاسخ بلند</a></h3>
 <ul>
 <li><code>route</code> برای ثبت مستقیم یک مسیر مشخص و اتصال آن به handler یا service استفاده می‌شود.</li>
 <li><code>nest</code> برای mount کردن یک Router دیگر زیر یک prefix مشخص به کار می‌رود.</li>
 </ul>
 <p>در <code>nest</code>، prefix از مسیر حذف می‌شود و Router داخلی بدون آگاهی از مسیر بالادستی کار می‌کند. این ویژگی برای ماژولار کردن API (مثلاً <code>/api/v1/users</code>) حیاتی است.</p>
-<h3 id="پاسخ-کوتاه-11"><a class="header" href="#پاسخ-کوتاه-11">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-16"><a class="header" href="#پاسخ-کوتاه-16">پاسخ کوتاه</a></h3>
 <p><code>route</code> یک مسیر منفرد را ثبت می‌کند؛ <code>nest</code> یک Router کامل را زیر یک prefix قرار می‌دهد.</p>
 <hr />
 <h2 id="چرا-handlerها-در-axum-async-هستند"><a class="header" href="#چرا-handlerها-در-axum-async-هستند">چرا handlerها در Axum <code>async</code> هستند؟</a></h2>
-<h3 id="پاسخ-بلند-12"><a class="header" href="#پاسخ-بلند-12">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-17"><a class="header" href="#پاسخ-بلند-17">پاسخ بلند</a></h3>
 <p>Axum بر مبنای I/O غیرهمزمان طراحی شده و handlerها مستقیماً در مسیر اجرای async runtime (Tokio) قرار می‌گیرند. <code>async</code> بودن handlerها امکان:</p>
 <ul>
 <li>انجام I/O بدون بلوکه کردن thread</li>
@@ -357,11 +424,11 @@
 <li>استفاده‌ی مستقیم از async database clients و HTTP clients</li>
 </ul>
 <p>را فراهم می‌کند. این طراحی برای سرویس‌های high-concurrency ضروری است.</p>
-<h3 id="پاسخ-کوتاه-12"><a class="header" href="#پاسخ-کوتاه-12">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-17"><a class="header" href="#پاسخ-کوتاه-17">پاسخ کوتاه</a></h3>
 <p>چون Axum بر پایه‌ی async I/O ساخته شده و handlerها باید non-blocking و scalable باشند.</p>
 <hr />
 <h2 id="چرا-امضای-handler-باید-type-safe-باشد"><a class="header" href="#چرا-امضای-handler-باید-type-safe-باشد">چرا امضای handler باید type-safe باشد؟</a></h2>
-<h3 id="پاسخ-بلند-13"><a class="header" href="#پاسخ-بلند-13">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-18"><a class="header" href="#پاسخ-بلند-18">پاسخ بلند</a></h3>
 <p>Axum از extractors مبتنی بر type system استفاده می‌کند؛ یعنی ورودی‌های handler (path params، query، headers، body، state) همگی type-safe هستند و در زمان کامپایل بررسی می‌شوند.</p>
 <p>این رویکرد:</p>
 <ul>
@@ -370,19 +437,19 @@
 <li>تست‌پذیری و refactorپذیری را افزایش می‌دهد</li>
 </ul>
 <p>Handler در Axum عملاً یک function با وابستگی‌های صریح است، نه یک تابع با دسترسی مبهم به request.</p>
-<h3 id="پاسخ-کوتاه-13"><a class="header" href="#پاسخ-کوتاه-13">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-18"><a class="header" href="#پاسخ-کوتاه-18">پاسخ کوتاه</a></h3>
 <p>برای اینکه استخراج داده از request در زمان کامپایل بررسی شود و خطاهای runtime حذف شوند.</p>
 <hr />
 <div style="break-before: page; page-break-before: always;"></div><h1 id="2-handlerها-و-extractorها"><a class="header" href="#2-handlerها-و-extractorها">2. Handlerها و Extractorها</a></h1>
 <hr />
 <h2 id="extractor-چیست-و-چگونه-کار-میکند"><a class="header" href="#extractor-چیست-و-چگونه-کار-میکند">extractor چیست و چگونه کار می‌کند؟</a></h2>
-<h3 id="پاسخ-بلند-14"><a class="header" href="#پاسخ-بلند-14">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-19"><a class="header" href="#پاسخ-بلند-19">پاسخ بلند</a></h3>
 <p>در Axum، <strong>extractor</strong> نوعی است که از یک درخواست HTTP مقدار/اطلاعات خاصی را استخراج می‌کند و آن را به‌عنوان آرگومان به handler تحویل می‌دهد. یک extractor با یکی از traitهای <code>FromRequestParts</code> (برای بخش‌های درخواست مثل headers, path, query, extensions) یا <code>FromRequest</code> (برای استخراج‌هایی که باید body را مصرف کنند) پیاده‌سازی می‌شود. قبل از فراخوانی handler، Axum هر extractor را اجرا می‌کند و نتیجهٔ موفق را به عنوان آرگومان به handler می‌دهد؛ اگر extraction شکست بخورد، handler اجرا نخواهد شد و یک rejection که قابل تبدیل به <code>Response</code> است بازگردانده می‌شود. :contentReference[oaicite:0]{index=0}</p>
-<h3 id="پاسخ-کوتاه-14"><a class="header" href="#پاسخ-کوتاه-14">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-19"><a class="header" href="#پاسخ-کوتاه-19">پاسخ کوتاه</a></h3>
 <p>Extractor نوعی است که بخش‌هایی از <code>Request</code> را می‌خواند/پارسه می‌کند و به handler به‌صورت پارامتر تحویل می‌دهد؛ پیاده‌سازی آن معمولاً از <code>FromRequestParts</code> یا <code>FromRequest</code> است. :contentReference[oaicite:1]{index=1}</p>
 <hr />
 <h2 id="تفاوت-jsont-formt-patht-queryt-چیست"><a class="header" href="#تفاوت-jsont-formt-patht-queryt-چیست">تفاوت <code>Json&lt;T&gt;</code>، <code>Form&lt;T&gt;</code>، <code>Path&lt;T&gt;</code>، <code>Query&lt;T&gt;</code> چیست؟</a></h2>
-<h3 id="پاسخ-بلند-15"><a class="header" href="#پاسخ-بلند-15">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-20"><a class="header" href="#پاسخ-بلند-20">پاسخ بلند</a></h3>
 <ul>
 <li><code>Json&lt;T&gt;</code>: بدنهٔ درخواست را به‌عنوان JSON خوانده و با <code>serde::Deserialize</code> به <code>T</code> تبدیل می‌کند — <strong>مصرف‌کنندهٔ body</strong> است (پس باید آخرین extractor باشد اگر body مصرفی دیگری نیست).</li>
 <li><code>Form&lt;T&gt;</code>: بدنهٔ فرم x-www-form-urlencoded را پارس می‌کند و به <code>T</code> تبدیل می‌کند (نیز body-consuming).</li>
@@ -390,28 +457,28 @@
 <li><code>Query&lt;T&gt;</code>: query string را پارس کرده و به <code>T</code> تبدیل می‌کند (برای پارامترهای optional یا pagination و غیره مناسب است).<br />
 هر یک از این‌ها نوعی extractor هستند و رفتار خاص خود را در صورت خطا (مثلاً بدفرمت بودن JSON یا فقدان پارامتر لازم) با یک rejection بازمی‌گردانند. :contentReference[oaicite:2]{index=2}</li>
 </ul>
-<h3 id="پاسخ-کوتاه-15"><a class="header" href="#پاسخ-کوتاه-15">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-20"><a class="header" href="#پاسخ-کوتاه-20">پاسخ کوتاه</a></h3>
 <p><code>Json</code>/<code>Form</code> بدنه را مصرف و پارس می‌کنند؛ <code>Path</code> پارامترهای مسیر و <code>Query</code> پارامترهای query string را استخراج می‌کند. :contentReference[oaicite:3]{index=3}</p>
 <hr />
 <h2 id="ترتیب-اجرای-extractorها-چگونه-است"><a class="header" href="#ترتیب-اجرای-extractorها-چگونه-است">ترتیب اجرای extractorها چگونه است؟</a></h2>
-<h3 id="پاسخ-بلند-16"><a class="header" href="#پاسخ-بلند-16">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-21"><a class="header" href="#پاسخ-بلند-21">پاسخ بلند</a></h3>
 <p>Extractorها <strong>همیشه به ترتیب پارامترهای تابع (از چپ به راست)</strong> اجرا می‌شوند. دلیل مهم این قاعده این است که بدنهٔ درخواست یک استریم async است که فقط یک‌بار قابل مصرف است؛ بنابراین extractorهایی که body را مصرف می‌کنند باید آخرین پارامتر باشند و Axum این محدودیت را از طریق ترتیب اجرا و نوع traitها اعمال می‌کند. به‌طور خلاصه: ترتیب پارامترها اهمیت دارد و extractorهای مصرف‌کنندهٔ body را آخر قرار دهید. :contentReference[oaicite:4]{index=4}</p>
-<h3 id="پاسخ-کوتاه-16"><a class="header" href="#پاسخ-کوتاه-16">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-21"><a class="header" href="#پاسخ-کوتاه-21">پاسخ کوتاه</a></h3>
 <p>Axum extractors را از چپ به راست (ترتیب پارامترهای handler) اجرا می‌کند؛ extractorهایی که body را مصرف می‌کنند باید آخر باشند. :contentReference[oaicite:5]{index=5}</p>
 <hr />
 <h2 id="اگر-یک-extractor-fail-شود-چه-اتفاقی-میافتد"><a class="header" href="#اگر-یک-extractor-fail-شود-چه-اتفاقی-میافتد">اگر یک extractor fail شود چه اتفاقی می‌افتد؟</a></h2>
-<h3 id="پاسخ-بلند-17"><a class="header" href="#پاسخ-بلند-17">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-22"><a class="header" href="#پاسخ-بلند-22">پاسخ بلند</a></h3>
 <p>وقتی یک extractor شکست می‌خورد، آن extractor یک نوع <strong>rejection</strong> برمی‌گرداند (نوع مرتبط با extractor که <code>IntoResponse</code> را پیاده‌سازی می‌کند). در این حالت:</p>
 <ul>
 <li>اجرای سایر extractorها/handler متوقف می‌شود.</li>
 <li>Router پاسخ HTTP را با تبدیل rejection به <code>Response</code> ارسال می‌کند (مثلاً 400 برای JSON نامعتبر یا 404 برای مسیر نامناسب، بسته به نوع rejection).<br />
 برای دسترسی به خطای درون یک extractor یا سفارشی‌سازی پاسخ خطا می‌توان extractor را به صورت <code>Result&lt;T, T::Rejection&gt;</code> در آرگومان handler گرفت یا از ابزارهایی مانند <code>WithRejection</code> / تعریف extractor سفارشی استفاده کرد. :contentReference[oaicite:6]{index=6}</li>
 </ul>
-<h3 id="پاسخ-کوتاه-17"><a class="header" href="#پاسخ-کوتاه-17">پاسخ کوتاه</a></h3>
+<h3 id="پاسخ-کوتاه-22"><a class="header" href="#پاسخ-کوتاه-22">پاسخ کوتاه</a></h3>
 <p>در صورت شکست، extractor یک rejection بازمی‌گرداند و handler اجرا نمی‌شود — آن rejection به <code>Response</code> تبدیل و به کاربر برگردانده می‌شود. :contentReference[oaicite:7]{index=7}</p>
 <hr />
 <h2 id="چگونه-extractor-سفارشی-مینویسید"><a class="header" href="#چگونه-extractor-سفارشی-مینویسید">چگونه extractor سفارشی می‌نویسید؟</a></h2>
-<h3 id="پاسخ-بلند-18"><a class="header" href="#پاسخ-بلند-18">پاسخ بلند</a></h3>
+<h3 id="پاسخ-بلند-23"><a class="header" href="#پاسخ-بلند-23">پاسخ بلند</a></h3>
 <p>دو مسیر اصلی وجود دارد:</p>
 <ol>
 <li>اگر نیاز فقط به خواندن بخش‌های request (headers, path, query, extensions) دارید، <code>FromRequestParts&lt;S&gt;</code> را پیاده‌سازی کنید.</li>
