@@ -1,4 +1,4 @@
-# 3. Response و Error Handling (Axum — Responses & Error Handling)
+# 3. Response و Error Handling
 
 ---
 
