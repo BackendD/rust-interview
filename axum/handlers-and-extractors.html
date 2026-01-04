@@ -175,7 +175,70 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="handlerها-و-extractorها"><a class="header" href="#handlerها-و-extractorها">Handlerها و Extractorها</a></h1>
+                        <h1 id="2-handlerها-و-extractorها"><a class="header" href="#2-handlerها-و-extractorها">2. Handlerها و Extractorها</a></h1>
+<hr />
+<h2 id="extractor-چیست-و-چگونه-کار-میکند"><a class="header" href="#extractor-چیست-و-چگونه-کار-میکند">extractor چیست و چگونه کار می‌کند؟</a></h2>
+<h3 id="پاسخ-بلند"><a class="header" href="#پاسخ-بلند">پاسخ بلند</a></h3>
+<p>در Axum، <strong>extractor</strong> نوعی است که از یک درخواست HTTP مقدار/اطلاعات خاصی را استخراج می‌کند و آن را به‌عنوان آرگومان به handler تحویل می‌دهد. یک extractor با یکی از traitهای <code>FromRequestParts</code> (برای بخش‌های درخواست مثل headers, path, query, extensions) یا <code>FromRequest</code> (برای استخراج‌هایی که باید body را مصرف کنند) پیاده‌سازی می‌شود. قبل از فراخوانی handler، Axum هر extractor را اجرا می‌کند و نتیجهٔ موفق را به عنوان آرگومان به handler می‌دهد؛ اگر extraction شکست بخورد، handler اجرا نخواهد شد و یک rejection که قابل تبدیل به <code>Response</code> است بازگردانده می‌شود. :contentReference[oaicite:0]{index=0}</p>
+<h3 id="پاسخ-کوتاه"><a class="header" href="#پاسخ-کوتاه">پاسخ کوتاه</a></h3>
+<p>Extractor نوعی است که بخش‌هایی از <code>Request</code> را می‌خواند/پارسه می‌کند و به handler به‌صورت پارامتر تحویل می‌دهد؛ پیاده‌سازی آن معمولاً از <code>FromRequestParts</code> یا <code>FromRequest</code> است. :contentReference[oaicite:1]{index=1}</p>
+<hr />
+<h2 id="تفاوت-jsont-formt-patht-queryt-چیست"><a class="header" href="#تفاوت-jsont-formt-patht-queryt-چیست">تفاوت <code>Json&lt;T&gt;</code>، <code>Form&lt;T&gt;</code>، <code>Path&lt;T&gt;</code>، <code>Query&lt;T&gt;</code> چیست؟</a></h2>
+<h3 id="پاسخ-بلند-1"><a class="header" href="#پاسخ-بلند-1">پاسخ بلند</a></h3>
+<ul>
+<li><code>Json&lt;T&gt;</code>: بدنهٔ درخواست را به‌عنوان JSON خوانده و با <code>serde::Deserialize</code> به <code>T</code> تبدیل می‌کند — <strong>مصرف‌کنندهٔ body</strong> است (پس باید آخرین extractor باشد اگر body مصرفی دیگری نیست).</li>
+<li><code>Form&lt;T&gt;</code>: بدنهٔ فرم x-www-form-urlencoded را پارس می‌کند و به <code>T</code> تبدیل می‌کند (نیز body-consuming).</li>
+<li><code>Path&lt;T&gt;</code>: پارامترهای مسیر (path params) را از URI استخراج و با <code>serde</code> دی‌سریالایز می‌کند؛ معمولاً برای مقادیر شناسه/پارامتر مسیر استفاده می‌شود.</li>
+<li><code>Query&lt;T&gt;</code>: query string را پارس کرده و به <code>T</code> تبدیل می‌کند (برای پارامترهای optional یا pagination و غیره مناسب است).<br />
+هر یک از این‌ها نوعی extractor هستند و رفتار خاص خود را در صورت خطا (مثلاً بدفرمت بودن JSON یا فقدان پارامتر لازم) با یک rejection بازمی‌گردانند. :contentReference[oaicite:2]{index=2}</li>
+</ul>
+<h3 id="پاسخ-کوتاه-1"><a class="header" href="#پاسخ-کوتاه-1">پاسخ کوتاه</a></h3>
+<p><code>Json</code>/<code>Form</code> بدنه را مصرف و پارس می‌کنند؛ <code>Path</code> پارامترهای مسیر و <code>Query</code> پارامترهای query string را استخراج می‌کند. :contentReference[oaicite:3]{index=3}</p>
+<hr />
+<h2 id="ترتیب-اجرای-extractorها-چگونه-است"><a class="header" href="#ترتیب-اجرای-extractorها-چگونه-است">ترتیب اجرای extractorها چگونه است؟</a></h2>
+<h3 id="پاسخ-بلند-2"><a class="header" href="#پاسخ-بلند-2">پاسخ بلند</a></h3>
+<p>Extractorها <strong>همیشه به ترتیب پارامترهای تابع (از چپ به راست)</strong> اجرا می‌شوند. دلیل مهم این قاعده این است که بدنهٔ درخواست یک استریم async است که فقط یک‌بار قابل مصرف است؛ بنابراین extractorهایی که body را مصرف می‌کنند باید آخرین پارامتر باشند و Axum این محدودیت را از طریق ترتیب اجرا و نوع traitها اعمال می‌کند. به‌طور خلاصه: ترتیب پارامترها اهمیت دارد و extractorهای مصرف‌کنندهٔ body را آخر قرار دهید. :contentReference[oaicite:4]{index=4}</p>
+<h3 id="پاسخ-کوتاه-2"><a class="header" href="#پاسخ-کوتاه-2">پاسخ کوتاه</a></h3>
+<p>Axum extractors را از چپ به راست (ترتیب پارامترهای handler) اجرا می‌کند؛ extractorهایی که body را مصرف می‌کنند باید آخر باشند. :contentReference[oaicite:5]{index=5}</p>
+<hr />
+<h2 id="اگر-یک-extractor-fail-شود-چه-اتفاقی-میافتد"><a class="header" href="#اگر-یک-extractor-fail-شود-چه-اتفاقی-میافتد">اگر یک extractor fail شود چه اتفاقی می‌افتد؟</a></h2>
+<h3 id="پاسخ-بلند-3"><a class="header" href="#پاسخ-بلند-3">پاسخ بلند</a></h3>
+<p>وقتی یک extractor شکست می‌خورد، آن extractor یک نوع <strong>rejection</strong> برمی‌گرداند (نوع مرتبط با extractor که <code>IntoResponse</code> را پیاده‌سازی می‌کند). در این حالت:</p>
+<ul>
+<li>اجرای سایر extractorها/handler متوقف می‌شود.</li>
+<li>Router پاسخ HTTP را با تبدیل rejection به <code>Response</code> ارسال می‌کند (مثلاً 400 برای JSON نامعتبر یا 404 برای مسیر نامناسب، بسته به نوع rejection).<br />
+برای دسترسی به خطای درون یک extractor یا سفارشی‌سازی پاسخ خطا می‌توان extractor را به صورت <code>Result&lt;T, T::Rejection&gt;</code> در آرگومان handler گرفت یا از ابزارهایی مانند <code>WithRejection</code> / تعریف extractor سفارشی استفاده کرد. :contentReference[oaicite:6]{index=6}</li>
+</ul>
+<h3 id="پاسخ-کوتاه-3"><a class="header" href="#پاسخ-کوتاه-3">پاسخ کوتاه</a></h3>
+<p>در صورت شکست، extractor یک rejection بازمی‌گرداند و handler اجرا نمی‌شود — آن rejection به <code>Response</code> تبدیل و به کاربر برگردانده می‌شود. :contentReference[oaicite:7]{index=7}</p>
+<hr />
+<h2 id="چگونه-extractor-سفارشی-مینویسید"><a class="header" href="#چگونه-extractor-سفارشی-مینویسید">چگونه extractor سفارشی می‌نویسید؟</a></h2>
+<h3 id="پاسخ-بلند-4"><a class="header" href="#پاسخ-بلند-4">پاسخ بلند</a></h3>
+<p>دو مسیر اصلی وجود دارد:</p>
+<ol>
+<li>اگر نیاز فقط به خواندن بخش‌های request (headers, path, query, extensions) دارید، <code>FromRequestParts&lt;S&gt;</code> را پیاده‌سازی کنید.</li>
+<li>اگر باید body را مصرف کنید، <code>FromRequest&lt;S&gt;</code> را پیاده‌سازی کنید.<br />
+هر پیاده‌سازی باید یک نوع <code>Rejection</code> تعیین کند (که <code>IntoResponse</code> را پیاده‌سازی کند). معمول‌ترین الگو این است که در <code>from_request_parts</code>/<code>from_request</code> منطق استخراج را انجام دهید، در صورت موفقیت مقدار موردنظر را بسازید و در صورت شکست یک rejection مناسب برگردانید. برای سفارشی‌سازی خطاها می‌توانید از <code>WithRejection</code> یا از آرگومان <code>Result&lt;T, T::Rejection&gt;</code> در handler استفاده کنید. مثال کوتاه (اسکلت):</li>
+</ol>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use axum::extract::{FromRequestParts, RequestParts};
+use http::request::Parts;
+
+struct MyExtractor(/* fields */);
+
+#[axum::async_trait]
+impl&lt;S&gt; FromRequestParts&lt;S&gt; for MyExtractor
+where
+    S: Send + Sync,
+{
+    type Rejection = MyRejection;
+
+    async fn from_request_parts(parts: &amp;mut Parts, state: &amp;S) -&gt; Result&lt;Self, Self::Rejection&gt; {
+        // خواندن header/extension و ساخت extractor یا بازگرداندن MyRejection
+    }
+}
+<span class="boring">}</span></code></pre></pre>
 
                     </main>
 
