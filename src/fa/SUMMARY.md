@@ -5,3 +5,4 @@
 
 - [وب](axum/README.md)
   - [مبانی Axum](axum/axum-fundamentals.md)
+  - [Handlerها و Extractorها](axum/handlers-and-extractors.md)
