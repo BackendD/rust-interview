@@ -1,7 +1,7 @@
 # فهرست
 
-- [زبان‌ها](core/README.md)
+- [هسته](core/README.md)
   - [مفاهیم پایه (Rust Fundamentals)](core/rust-fundamentals.md)
 
-- [توسعه](axum/README.md)
-  - [مبانی Axum](development/decision-records.md)
+- [وب](axum/README.md)
+  - [مبانی Axum](axum/axum-fundamentals.md)
