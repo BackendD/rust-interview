@@ -1,0 +1,5 @@
+[book]
+authors = ["Hasan Karimi"]
+language = "fa"
+src = "."
+title = "مصاحبه‌ی Rust"
