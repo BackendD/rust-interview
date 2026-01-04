@@ -176,66 +176,141 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="3-traitها-generics-و-type-system"><a class="header" href="#3-traitها-generics-و-type-system">3. Traitها، Generics و Type System</a></h1>
+<p>این بخش به بررسی عمیق سیستم تایپ Rust، مکانیزم‌های انتزاع (Abstraction) و پلی‌مورفیسم (Polymorphism) می‌پردازد.</p>
 <hr />
-<h2 id="trait-چیست-و-چه-تفاوتی-با-interface-دارد"><a class="header" href="#trait-چیست-و-چه-تفاوتی-با-interface-دارد">trait چیست و چه تفاوتی با interface دارد؟</a></h2>
-<h3 id="پاسخ-بلند"><a class="header" href="#پاسخ-بلند">پاسخ بلند</a></h3>
-<p><code>trait</code> در Rust مجموعه‌ای از قراردادها (متدها، روش‌ها و در صورت نیاز associated types یا consts) است که انواع می‌توانند آن را پیاده‌سازی کنند. تفاوت‌های کلیدی با مفهوم رایج <code>interface</code> در زبان‌های شیءگرا:</p>
+<h3 id="trait-چیست-و-چه-تفاوتی-با-interface-دارد"><a class="header" href="#trait-چیست-و-چه-تفاوتی-با-interface-دارد">trait چیست و چه تفاوتی با interface دارد؟</a></h3>
+<h4 id="پاسخ-بلند"><a class="header" href="#پاسخ-بلند">پاسخ بلند</a></h4>
+<p>Trait در Rust معادل قدرت‌مندتری برای Interface در زبان‌هایی مثل Java یا C# است. Trait قراردادی است که مشخص می‌کند یک تایپ چه رفتارهایی (Functionality) باید داشته باشد.
+تفاوت‌های کلیدی:</p>
+<ol>
+<li><strong>عدم وجود State:</strong> Traitها فقط رفتار را تعریف می‌کنند و نمی‌توانند هیچ داده یا فیلدی (Instance Data) داشته باشند (برخلاف Abstract Class).</li>
+<li><strong>پیاده‌سازی روی تایپ‌های خارجی (Extension Methods):</strong> شما می‌توانید یک Trait (حتی اگر خودتان ننوشته باشید) را برای یک Type (حتی اگر مال کتابخانه استاندارد باشد) پیاده‌سازی کنید، به شرطی که حداقل یکی از آن‌ها متعلق به Crate شما باشد (قانون Orphan Rule).</li>
+<li><strong>Associated Items:</strong> Traitها می‌توانند <code>Associated Types</code> و <code>Associated Constants</code> داشته باشند که انعطاف‌پذیری سیستم تایپ را به شدت بالا می‌برد (مثل <code>Iterator::Item</code>).</li>
+<li><strong>Default Implementation:</strong> می‌توان برای متدها بدنه‌ی پیش‌فرض نوشت تا همه پیاده‌سازها مجبور به بازنویسی آن نباشند.</li>
+</ol>
+<h4 id="پاسخ-کوتاه"><a class="header" href="#پاسخ-کوتاه">پاسخ کوتاه</a></h4>
+<p>Trait در Rust مجموعه‌ای از رفتارها (متدها) را تعریف می‌کند که یک Type می‌تواند داشته باشد. تفاوت اصلی آن با Interface در زبان‌های سنتی شی‌گرا این است که Traitها نمی‌توانند فیلد (Data) داشته باشند، اما می‌توانند پیاده‌سازی پیش‌فرض (Default Implementation)، نوع‌های مرتبط (Associated Types) و ثابت‌ها (Constants) داشته باشند. همچنین امکان پیاده‌سازی Trait روی Typeهای خارجی وجود دارد.</p>
+<hr />
+<h3 id="تفاوت-static-dispatch-و-dynamic-dispatch-چیست"><a class="header" href="#تفاوت-static-dispatch-و-dynamic-dispatch-چیست">تفاوت static dispatch و dynamic dispatch چیست؟</a></h3>
+<h4 id="پاسخ-بلند-1"><a class="header" href="#پاسخ-بلند-1">پاسخ بلند</a></h4>
+<p>این دو روش پیاده‌سازی پلی‌مورفیسم در Rust هستند:</p>
+<ol>
+<li>
+<p><strong>Static Dispatch (Generics):</strong>
+وقتی از <code>fn foo&lt;T: Trait&gt;(arg: T)</code> استفاده می‌کنید، کامپایلر برای هر نوع <code>T</code> متمایزی که این تابع با آن صدا زده شود، یک نسخه جداگانه از تابع تولید می‌کند. این فرآیند <strong>Monomorphization</strong> نام دارد.</p>
 <ul>
-<li><strong>associated types و generics:</strong> Traits می‌توانند associated types و generic parameters داشته باشند که الگوهای قوی‌تری برای abstraction فراهم می‌کند.</li>
-<li><strong>default method implementations:</strong> Traits می‌توانند پیاده‌سازی پیش‌فرض داشته باشند.</li>
-<li><strong>coherence / orphan rules:</strong> قوانین پیاده‌سازی در Rust سختگیرانه‌تر است (مثلاً orphan rule) تا تداخل implها و ناسازگاری crateها جلوگیری شود.</li>
-<li><strong>دو نوع dispatch:</strong> Traits هم می‌توانند به‌صورت static (monomorphization) و هم dynamic (trait objects) استفاده شوند؛ در برخی زبان‌های دارای interface فقط dynamic dispatch مرسوم است.</li>
-<li><strong>بدون وراثت داده‌ای:</strong> Traits رفتار را توصیف می‌کنند، نه ساختار داده‌ای یا فیلدها.</li>
+<li><strong>مزایا:</strong> سرعت اجرای بالا (Direct calls)، امکان Inline کردن کد توسط کامپایلر.</li>
+<li><strong>معایب:</strong> افزایش حجم فایل اجرایی (Code Bloat) و زمان کامپایل طولانی‌تر.</li>
 </ul>
-<h3 id="پاسخ-کوتاه"><a class="header" href="#پاسخ-کوتاه">پاسخ کوتاه</a></h3>
-<p><code>trait</code> قرارداد رفتاری است؛ قوی‌تر از یک interface ساده است (associated types، default impl، انعطاف در dispatch) و قوانین coherence خاص Rust دارد.</p>
-<hr />
-<h2 id="تفاوت-static-dispatch-و-dynamic-dispatch-چیست"><a class="header" href="#تفاوت-static-dispatch-و-dynamic-dispatch-چیست">تفاوت static dispatch و dynamic dispatch چیست؟</a></h2>
-<h3 id="پاسخ-بلند-1"><a class="header" href="#پاسخ-بلند-1">پاسخ بلند</a></h3>
+</li>
+<li>
+<p><strong>Dynamic Dispatch (Trait Objects):</strong>
+وقتی از <code>fn foo(arg: &amp;dyn Trait)</code> استفاده می‌کنید، نوع دقیق <code>arg</code> در زمان کامپایل پاک می‌شود (Type Erasure). در زمان اجرا، یک اشاره‌گر Fat Pointer شامل دو بخش پاس داده می‌شود: اشاره‌گر به داده واقعی و اشاره‌گر به <code>vtable</code> (جدولی از اشاره‌گرهای توابع آن trait).</p>
 <ul>
-<li><strong>Static dispatch (مونومورفی‌سازی):</strong> کامپایلر برای هر نوعی که trait را پیاده‌سازی کرده، یک نسخهٔ مجزا از کد تولید می‌کند (<code>generic</code>/<code>impl Trait</code> در پارامترها). نتیجه: سرعت بالا (همانند inline) و بهینه‌سازی کامل در زمان کامپایل، اما اندازهٔ باینری ممکن است افزایش یابد.</li>
-<li><strong>Dynamic dispatch (trait object):</strong> با استفاده از <code>dyn Trait</code> فراخوانی‌ها از طریق یک vtable انجام می‌شود؛ کدِ واحدی وجود دارد و انتخاب متد در زمان اجرا انجام می‌شود. مزیت: امکان نگهداری انواع مختلف در یک کالکشن واحد و کاهش اندازهٔ باینری؛ هزینه: اندک overhead اجرای vtable و از دست رفتن برخی بهینه‌سازی‌های زمان کامپایل.</li>
+<li><strong>مزایا:</strong> حجم کد کمتر (فقط یک نسخه از تابع کامپایل می‌شود)، انعطاف‌پذیری بالا (امکان ذخیره انواع مختلف در یک لیست واحد).</li>
+<li><strong>معایب:</strong> کندتر بودن به دلیل عدم امکان Inlining و هزینه <code>vtable lookup</code> و <code>indirect branch</code> در پردازنده.</li>
 </ul>
-<h3 id="پاسخ-کوتاه-1"><a class="header" href="#پاسخ-کوتاه-1">پاسخ کوتاه</a></h3>
-<p>Static = مونومورفی‌سازی زمان کامپایل (سریع‌تر، بدون vtable). Dynamic = trait objects با vtable در زمان اجرا (انعطاف بیشتر، هزینهٔ اندک runtime).</p>
+</li>
+</ol>
+<h4 id="پاسخ-کوتاه-1"><a class="header" href="#پاسخ-کوتاه-1">پاسخ کوتاه</a></h4>
+<p><strong>Static Dispatch</strong> (با Generics) در زمان کامپایل، کد مخصوص هر تایپ را تولید می‌کند (Monomorphization)، بنابراین سریع‌تر است اما حجم باینری را افزایش می‌دهد.
+<strong>Dynamic Dispatch</strong> (با trait objects) در زمان اجرا از طریق مکانیزم <code>vtable</code> مشخص می‌کند کدام متد باید صدا زده شود؛ انعطاف‌پذیرتر است اما کمی سربار اجرایی دارد و کامپایلر نمی‌تواند کد را Inline کند.</p>
 <hr />
-<h2 id="dyn-trait-چه-زمانی-استفاده-میشود"><a class="header" href="#dyn-trait-چه-زمانی-استفاده-میشود"><code>dyn Trait</code> چه زمانی استفاده می‌شود؟</a></h2>
-<h3 id="پاسخ-بلند-2"><a class="header" href="#پاسخ-بلند-2">پاسخ بلند</a></h3>
-<p>از <code>dyn Trait</code> برای <strong>polymorphism دیرهنگام (runtime polymorphism)</strong> استفاده کنید وقتی نیاز دارید:</p>
-<ul>
-<li>مجموعه‌ای از مقادیر با انواع متفاوت اما رفتار یکسان را در یک کانتینر نگهداری کنید (مثلاً <code>Vec&lt;Box&lt;dyn Draw&gt;&gt;</code>).</li>
-<li>نوع دقیق پیاده‌سازی را در زمان کامپایل ندانید یا مخفی نگه دارید (ABI abstraction یا plugin-like architecture).<br />
-پیش‌نیاز: trait باید <strong>object-safe</strong> باشد (قوانینی مثل نداشتن متدهای generic در سیگنیچر و بازنگرداندن <code>Self</code> به‌صورت غیرقابل‌خبری). معمولاً از <code>Box&lt;dyn Trait&gt;</code> یا <code>&amp;dyn Trait</code> استفاده می‌شود.</li>
-</ul>
-<h3 id="پاسخ-کوتاه-2"><a class="header" href="#پاسخ-کوتاه-2">پاسخ کوتاه</a></h3>
-<p>وقتی به polymorphism در runtime نیاز دارید — مثلاً heterogeneous collections یا پنهان‌سازی نوع — از <code>dyn Trait</code> استفاده کنید و مطمئن شوید trait object-safe است.</p>
+<h3 id="dyn-trait-چه-زمانی-استفاده-میشود"><a class="header" href="#dyn-trait-چه-زمانی-استفاده-میشود">dyn Trait چه زمانی استفاده می‌شود؟</a></h3>
+<h4 id="پاسخ-بلند-2"><a class="header" href="#پاسخ-بلند-2">پاسخ بلند</a></h4>
+<p>از <code>dyn Trait</code> یا همان Trait Objects در موارد زیر استفاده می‌شود:</p>
+<ol>
+<li><strong>ذخیره‌سازی انواع ناهمگن:</strong> مثلاً یک <code>Vec&lt;Box&lt;dyn Animal&gt;&gt;</code> که می‌تواند همزمان شامل <code>Cat</code> و <code>Dog</code> باشد. با Generics (<code>Vec&lt;T&gt;</code>) همه عناصر باید دقیقاً یک نوع باشند.</li>
+<li><strong>پنهان‌سازی نوع (Type Erasure):</strong> وقتی نمی‌خواهیم نوع دقیق در Signatures تابع یا در ساختار داده مشخص باشد و فقط رفتار (Trait) اهمیت دارد.</li>
+<li><strong>کاهش حجم کد:</strong> اگر یک تابع Generic داریم که با ده‌ها نوع مختلف صدا زده می‌شود و بدنه آن بزرگ است، استفاده از <code>dyn Trait</code> جلوی کپی شدن بیهوده‌ی کد ماشین را می‌گیرد.</li>
+<li><strong>Recursive Types:</strong> گاهی اوقات تعریف نوع بازگشتی با Generics پیچیده یا ناممکن می‌شود، اما با اشاره‌گر به <code>dyn Trait</code> حل می‌شود.</li>
+</ol>
+<p><em>نکته:</em> فقط Traitهایی که <strong>Object Safe</strong> هستند می‌توانند به صورت <code>dyn</code> استفاده شوند (مثلاً متدهایی که <code>self</code> برمی‌گردانند یا Generic parameters دارند نمی‌توانند در Trait Object باشند).</p>
+<h4 id="پاسخ-کوتاه-2"><a class="header" href="#پاسخ-کوتاه-2">پاسخ کوتاه</a></h4>
+<p>زمانی که نیاز به <strong>Heterogeneous Collections</strong> (لیستی از انواع مختلف که همگی یک Trait را پیاده‌سازی کرده‌اند) داریم، یا زمانی که می‌خواهیم حجم کد باینری (Code Bloat) ناشی از Generics را کاهش دهیم.</p>
 <hr />
-<h2 id="تفاوت-impl-trait-در-return-type-و-argument-چیست"><a class="header" href="#تفاوت-impl-trait-در-return-type-و-argument-چیست">تفاوت <code>impl Trait</code> در return type و argument چیست؟</a></h2>
-<h3 id="پاسخ-بلند-3"><a class="header" href="#پاسخ-بلند-3">پاسخ بلند</a></h3>
-<ul>
-<li><strong><code>impl Trait</code> در موقعیت return:</strong> نشان‌دهندهٔ یک نوع <strong>مجهول اما یکتا</strong> است که پیاده‌سازی مشخصی دارد اما برای caller مخفی است. این مناسب است وقتی می‌خواهید نوع دقیق را پنهان کنید ولی guarantee کنید که یک نوع واحد در همهٔ فراخوانی‌ها برگردانده می‌شود. مثال: <code>fn foo() -&gt; impl Iterator&lt;Item = i32&gt;</code>.</li>
-<li><strong><code>impl Trait</code> در پارامتر (argument):</strong> معادل syntactic sugar برای یک generic است؛ یعنی <code>fn f(x: impl Trait)</code> معادل <code>fn f&lt;T: Trait&gt;(x: T)</code> است. تفاوت عملی: در signature با <code>impl Trait</code> شما یک پارامتر generic اما بی‌نام دارید؛ در return موقعیت، <code>impl Trait</code> نوع را برای caller مبهم نگه می‌دارد (opaque type).<br />
-نکته: <code>impl Trait</code> در آرگومان نمی‌تواند چندین آرگومان را به یک نوع واحد الزام کند (برای آن باید generic type parameter صریح تعریف کنید).</li>
-</ul>
-<h3 id="پاسخ-کوتاه-3"><a class="header" href="#پاسخ-کوتاه-3">پاسخ کوتاه</a></h3>
-<p>در return: <code>impl Trait</code> یک نوع مخفی و یکتا برمی‌گرداند (opaque). در argument: shorthand برای یک generic parameter (معادل <code>T: Trait</code>).</p>
-<hr />
-<h2 id="trait-bound-چیست-و-چگونه-چند-trait-را-constrain-میکنید"><a class="header" href="#trait-bound-چیست-و-چگونه-چند-trait-را-constrain-میکنید">trait bound چیست و چگونه چند trait را constrain می‌کنید؟</a></h2>
-<h3 id="پاسخ-بلند-4"><a class="header" href="#پاسخ-بلند-4">پاسخ بلند</a></h3>
-<p><strong>Trait bound</strong> قیدی است که مشخص می‌کند یک type parameter باید چه traitهایی را پیاده‌سازی کند، مثال: <code>fn f&lt;T: Read + Send&gt;(t: T) {}</code>. می‌توانید از syntaxهای زیر استفاده کنید:</p>
-<ul>
-<li>مختصر: <code>T: Trait1 + Trait2</code></li>
-<li>با where clause برای خوانایی و حالات پیچیده:
+<h3 id="تفاوت-impl-trait-در-return-type-و-argument-چیست"><a class="header" href="#تفاوت-impl-trait-در-return-type-و-argument-چیست">تفاوت impl Trait در return type و argument چیست؟</a></h3>
+<h4 id="پاسخ-بلند-3"><a class="header" href="#پاسخ-بلند-3">پاسخ بلند</a></h4>
+<ol>
+<li>
+<p><strong>Argument Position:</strong></p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn f&lt;T, U&gt;(t: T, u: U)
+</span>fn foo(arg: impl Display) { ... }
+<span class="boring">}</span></code></pre></pre>
+<p>این کد تقریباً معادل <code>fn foo&lt;T: Display&gt;(arg: T)</code> است. یعنی Caller تصمیم می‌گیرد چه نوعی پاس دهد و برای هر نوع، یک نسخه از تابع ساخته می‌شود (Static Dispatch).</p>
+</li>
+<li>
+<p><strong>Return Position:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn foo() -&gt; impl Iterator&lt;Item=i32&gt; { ... }
+<span class="boring">}</span></code></pre></pre>
+<p>در اینجا Function تعیین می‌کند چه نوعی برمی‌گرداند، اما آن را در امضا (Signature) مخفی می‌کند.</p>
+<ul>
+<li>بدون <code>impl Trait</code>، اگر بخواهیم مثلاً یک Closure یا یک Iterator پیچیده (مثل <code>Map&lt;Filter&lt;...&gt;&gt;</code>) برگردانیم، نوشتن نام دقیق Type بسیار سخت یا غیرممکن است.</li>
+<li>تضمین می‌کند که نوع بازگشتی در آینده قابل تغییر است بدون اینکه API عمومی تابع بشکند (مادامی که Trait را رعایت کند).</li>
+<li>برخلاف <code>dyn Trait</code>، هیچ هزینه اجرایی (Overhead) ندارد زیرا کامپایلر نوع واقعی را می‌داند.</li>
+</ul>
+</li>
+</ol>
+<h4 id="پاسخ-کوتاه-3"><a class="header" href="#پاسخ-کوتاه-3">پاسخ کوتاه</a></h4>
+<p>در <strong>Argument</strong> (<code>fn foo(x: impl Trait)</code>): صرفاً سینتکس ساده‌تر (Syntactic Sugar) برای Generics است وCaller تعیین می‌کند چه نوعی بفرستد.
+در <strong>Return Type</strong> (<code>fn foo() -&gt; impl Trait</code>): نوع بازگشتی یک نوع مشخص و واحد است که کامپایلر آن را می‌داند اما از کاربر پنهان شده است (Opaque Type).</p>
+<hr />
+<h3 id="trait-bound-چیست-و-چگونه-چند-trait-را-constrain-میکنید"><a class="header" href="#trait-bound-چیست-و-چگونه-چند-trait-را-constrain-میکنید">trait bound چیست و چگونه چند trait را constrain می‌کنید؟</a></h3>
+<h4 id="پاسخ-بلند-4"><a class="header" href="#پاسخ-بلند-4">پاسخ بلند</a></h4>
+<p>هنگام تعریف توابع یا ساختارهای Generic، معمولاً نمی‌توانیم روی <code>T</code> هیچ متدی صدا بزنیم مگر اینکه مشخص کنیم <code>T</code> چه قابلیت‌هایی دارد.</p>
+<ul>
+<li>
+<p><strong>Syntax:</strong></p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn notify&lt;T: Summary + Display&gt;(item: &amp;T) { ... }
+<span class="boring">}</span></code></pre></pre>
+<p>در اینجا <code>T</code> باید <strong>هم</strong> <code>Summary</code> را پیاده‌سازی کرده باشد و <strong>هم</strong> <code>Display</code>.</p>
+</li>
+<li>
+<p><strong>Where Clause:</strong> برای خوانایی بیشتر وقتی محدودیت‌ها زیاد می‌شوند:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn some_function&lt;T, U&gt;(t: &amp;T, u: &amp;U) -&gt; i32
 where
-    T: Iterator&lt;Item = U&gt;,
-    U: Display + Clone,
-{ }
+    T: Display + Clone,
+    U: Clone + Debug,
+{ ... }
 <span class="boring">}</span></code></pre></pre>
 </li>
 </ul>
+<h4 id="پاسخ-کوتاه-4"><a class="header" href="#پاسخ-کوتاه-4">پاسخ کوتاه</a></h4>
+<p>Trait bound شرطی است که روی Generic Type می‌گذاریم تا تضمین کنیم آن Type رفتار خاصی را پیاده‌سازی کرده است. برای اعمال چند محدودیت از عملگر <code>+</code> استفاده می‌کنیم.</p>
+<hr />
+<h3 id="orphan-rule-چیست-و-چرا-وجود-دارد"><a class="header" href="#orphan-rule-چیست-و-چرا-وجود-دارد">orphan rule چیست و چرا وجود دارد؟</a></h3>
+<h4 id="پاسخ-بلند-5"><a class="header" href="#پاسخ-بلند-5">پاسخ بلند</a></h4>
+<p>این قانون برای حفظ ویژگی <strong>Coherence</strong> در سیستم تایپ Rust حیاتی است.
+فرض کنید Trait <code>Display</code> (از <code>std</code>) و Type <code>Vec</code> (از <code>std</code>) را داریم. اگر Crate شما اجازه داشت <code>impl Display for Vec</code> را بنویسد و Crate دیگری هم همین کار را می‌کرد، وقتی برنامه شما از هر دو Crate استفاده می‌کند، کامپایلر نمی‌داند از کدام پیاده‌سازی استفاده کند.
+همچنین، اگر شما برای یک Type خارجی پیاده‌سازی بنویسید، ممکن است در آینده صاحب آن Type (مثلاً تیم استاندارد Rust) تصمیم بگیرد خودش آن Trait را پیاده‌سازی کند. در این صورت کد شما متوقف (Break) می‌شود.</p>
+<p><strong>استثنا (Newtype Pattern):</strong> برای دور زدن این قانون، می‌توانید Type خارجی را در یک <code>struct</code> محلی (Tuple Struct) بپیچید:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct MyVec(Vec&lt;i32&gt;);
+impl Display for MyVec { ... }
+<span class="boring">}</span></code></pre></pre>
+<h4 id="پاسخ-کوتاه-5"><a class="header" href="#پاسخ-کوتاه-5">پاسخ کوتاه</a></h4>
+<p>قانون Orphan Rule (یا Coherence) می‌گوید که شما تنها در صورتی می‌توانید یک Trait را برای یک Type پیاده‌سازی کنید که <strong>یا Trait</strong> یا <strong>Type</strong> در همان Crate جاری (Local) تعریف شده باشند. هدف آن جلوگیری از تداخل پیاده‌سازی‌ها و شکستن کد در صورت تغییر وابستگی‌هاست.</p>
+<hr />
+<h3 id="specialization-چرا-unstable-است"><a class="header" href="#specialization-چرا-unstable-است">specialization چرا unstable است؟</a></h3>
+<h4 id="پاسخ-بلند-6"><a class="header" href="#پاسخ-بلند-6">پاسخ بلند</a></h4>
+<p>Specialization (RFC 1210) قابلیتی بسیار مورد درخواست است که اجازه می‌دهد چندین پیاده‌سازی <code>impl</code> همپوشانی داشته باشند و کامپایلر "خاص‌ترین" (Specific) آن‌ها را انتخاب کند.
+مثال:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl&lt;T&gt; MyTrait for T { ... } // پیاده‌سازی کلی (کندتر)
+impl MyTrait for String { ... } // پیاده‌سازی خاص برای String (سریع‌تر)
+<span class="boring">}</span></code></pre></pre>
+<p>دلیل Unstable بودن طولانی مدت آن، باگی عمیق در تعامل با سیستم Lifetimeهاست. تشخیص اینکه یک پیاده‌سازی از دیگری "خاص‌تر" است وقتی پای Lifetime وسط می‌آید (مثلاً <code>&amp;'static str</code> vs <code>&amp;'a str</code>) می‌تواند منجر به استفاده از کدهای unsafe در شرایطی شود که ایمنی حافظه نقض گردد. تیم Rust در حال کار روی نسخه‌ی اصلاح شده‌ای (مثل <code>min_specialization</code>) است.</p>
+<h4 id="پاسخ-کوتاه-6"><a class="header" href="#پاسخ-کوتاه-6">پاسخ کوتاه</a></h4>
+<p>Specialization اجازه می‌دهد برای یک Type خاص، پیاده‌سازی بهینه‌تری نسبت به پیاده‌سازی عمومی Generic ارائه دهیم. این قابلیت هنوز Unstable است چون مسائل پیچیده‌ای در مورد <strong>Soundness</strong> (ایمنی منطقی سیستم تایپ) مخصوصاً در تعامل با <code>Lifetime</code>ها وجود دارد که هنوز کامل حل نشده‌اند.</p>
 
                     </main>
 
