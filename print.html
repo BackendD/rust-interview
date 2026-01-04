@@ -504,6 +504,81 @@ where
     }
 }
 <span class="boring">}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="3-response-و-error-handling-axum--responses--error-handling"><a class="header" href="#3-response-و-error-handling-axum--responses--error-handling">3. Response و Error Handling (Axum — Responses &amp; Error Handling)</a></h1>
+<hr />
+<h2 id="چه-typeهایی-میتوانند-response-باشند"><a class="header" href="#چه-typeهایی-میتوانند-response-باشند">چه typeهایی می‌توانند response باشند؟</a></h2>
+<h3 id="پاسخ-بلند-24"><a class="header" href="#پاسخ-بلند-24">پاسخ بلند</a></h3>
+<p>هر نوعی که <code>IntoResponse</code> را پیاده‌سازی کرده باشد می‌تواند از یک handler برگردد. Axum برای انواع رایج (<code>String</code>, <code>&amp;'static str</code>, <code>StatusCode</code>, <code>http::Response&lt;Body&gt;</code>, <code>Json&lt;T&gt;</code>، tupleهایی مثل <code>(StatusCode, HeaderMap, body)</code> و غیره) پیاده‌سازی آماده دارد، بنابراین معمولاً می‌توانید مستقیم یک مقدار ساده یا یک tuple برگردانید و Axum آن را به <code>Response</code> تبدیل می‌کند. اگر نوع دلخواه شما این trait را نداشته باشد، می‌توانید آن را خودتان پیاده‌سازی کنید تا مستقیماً از handler قابل برگشت باشد. :contentReference[oaicite:0]{index=0}</p>
+<h3 id="پاسخ-کوتاه-23"><a class="header" href="#پاسخ-کوتاه-23">پاسخ کوتاه</a></h3>
+<p>هر چیزی که <code>IntoResponse</code> را پیاده‌سازی کند — Axum برای بسیاری از انواع رایج پیاده‌سازی آماده دارد. :contentReference[oaicite:1]{index=1}</p>
+<hr />
+<h2 id="trait-intoresponse-چگونه-کار-میکند"><a class="header" href="#trait-intoresponse-چگونه-کار-میکند">trait <code>IntoResponse</code> چگونه کار می‌کند؟</a></h2>
+<h3 id="پاسخ-بلند-25"><a class="header" href="#پاسخ-بلند-25">پاسخ بلند</a></h3>
+<p><code>IntoResponse</code> متدی <code>into_response(self) -&gt; Response</code> فراهم می‌کند که نوع حامل را به یک <code>http::Response&lt;Body&gt;</code> تبدیل می‌کند. وقتی handler <code>impl IntoResponse</code> یا نوعی که <code>IntoResponse</code> را پیاده‌سازی کرده برمی‌گرداند، Axum آن را فراخوانی می‌کند تا پاسخ HTTP واقعی ساخته شود. این سازوکار امکان انعطاف‌پذیری بالا (مثلاً بازگرداندن tuple برای تعیین status/headers/body) و یکپارچگی با انواع کاربردی مانند <code>Json&lt;T&gt;</code> را فراهم می‌سازد. اغلب لازم نیست خودتان <code>IntoResponse</code> را بنویسید مگر برای error typeهای سفارشی یا رفتارهای ویژه. :contentReference[oaicite:2]{index=2}</p>
+<h3 id="پاسخ-کوتاه-24"><a class="header" href="#پاسخ-کوتاه-24">پاسخ کوتاه</a></h3>
+<p>این trait مقدار را به یک <code>http::Response</code> تبدیل می‌کند؛ Axum این تبدیل را برای هر خروجی handler انجام می‌دهد. :contentReference[oaicite:3]{index=3}</p>
+<hr />
+<h2 id="چگونه-error-مرکزی-global-error-handling-پیاده-میکنید"><a class="header" href="#چگونه-error-مرکزی-global-error-handling-پیاده-میکنید">چگونه error مرکزی (global error handling) پیاده می‌کنید؟</a></h2>
+<h3 id="پاسخ-بلند-26"><a class="header" href="#پاسخ-بلند-26">پاسخ بلند</a></h3>
+<p>الگوهای معمول برای هندلینگ سراسری در Axum:</p>
+<ol>
+<li>
+<p><strong>Middleware / Tower layers</strong> — از <code>tower::ServiceBuilder</code> و لِیِرهایی مثل <code>HandleErrorLayer</code> برای wrap کردن سرویس استفاده کنید تا خطاهای لایه‌ها (مثل timeout یا fallible middleware) را بگیرید و به <code>IntoResponse</code> تبدیل کنید. <code>HandleErrorLayer</code> برای تبدیل <code>BoxError</code> یا خطاهای لایه به پاسخ HTTP کاربردی است. :contentReference[oaicite:4]{index=4}</p>
+</li>
+<li>
+<p><strong>خطاهای handler به‌صورت نوعی که <code>IntoResponse</code> را پیاده‌سازی می‌کند</strong> — هر error type سفارشی را طوری طراحی کنید که خودش <code>IntoResponse</code> را پیاده‌سازی کند؛ سپس هر کجا <code>Result&lt;T, E&gt;</code> برگردانید، Axum در صورت <code>Err(e)</code> آن را به پاسخ مناسب تبدیل می‌کند. این الگو خطاها را در لایه application متحد می‌سازد (مثلاً تبدیل enum خطاها به JSON+status). :contentReference[oaicite:5]{index=5}</p>
+</li>
+<li>
+<p><strong>ترکیب هر دو</strong> — middleware برای موارد کلی (logging، تبدیل errorهای لایه‌ای، timeouts) و <code>IntoResponse</code> برای mapping دقیق انواع خطای دامنه به status/body.</p>
+</li>
+</ol>
+<p>نکته عملی: middlewareها معمولاً خطاها را به شکل <code>Result</code> یا <code>BoxError</code> برمی‌گردانند؛ از <code>HandleErrorLayer</code> یا یک layer سفارشی استفاده کنید تا log/metric بگیرید و یک <code>Response</code> یکنواخت بسازید. :contentReference[oaicite:6]{index=6}</p>
+<h3 id="پاسخ-کوتاه-25"><a class="header" href="#پاسخ-کوتاه-25">پاسخ کوتاه</a></h3>
+<p>از ترکیب Tower layers (مثلاً <code>HandleErrorLayer</code>) برای خطاهای لایه‌ای و پیاده‌سازی <code>IntoResponse</code> روی error typeهای دامنه برای mapping دقیق خطا به status/body استفاده کنید. :contentReference[oaicite:7]{index=7}</p>
+<hr />
+<h2 id="تفاوت-برگرداندن-resultt-e-و-impl-intoresponse-چیست"><a class="header" href="#تفاوت-برگرداندن-resultt-e-و-impl-intoresponse-چیست">تفاوت برگرداندن <code>Result&lt;T, E&gt;</code> و <code>impl IntoResponse</code> چیست؟</a></h2>
+<h3 id="پاسخ-بلند-27"><a class="header" href="#پاسخ-بلند-27">پاسخ بلند</a></h3>
+<ul>
+<li>
+<p><code>impl IntoResponse</code>: تابع فقط می‌تواند <strong>یک</strong> نوع بازگشتی را داشته باشد؛ اگر بخواهید در شاخه‌های مختلف انواع متفاوتی برگردانید، <code>impl Trait</code> محدودیت دارد و گاهی لازم است به صورت صریح یک <code>Response</code> یا یک common enum برگردانید. علاوه بر این، <code>impl IntoResponse</code> مناسب وقتی است که موفقیت و خطا در یک نوع واحد نمایش داده شوند. :contentReference[oaicite:8]{index=8}</p>
+</li>
+<li>
+<p><code>Result&lt;T, E&gt;</code>: بیان صریحِ احتمال خطاست. Axum برای <code>Result</code> نیز پیاده‌سازی دارد، اما هر دو شاخه (<code>T</code> و <code>E</code>) باید <code>IntoResponse</code> را پیاده‌سازی کنند تا تبدیل خودکار به <code>Response</code> انجام شود. بنابراین <code>Result</code> به شما اجازه می‌دهد خطا را جدا نگه دارید و آن را با یک <code>IntoResponse</code> مناسب هندل کنید. اگر <code>E</code> انواع مختلفی داشته باشد، معمولاً یک enum خطا می‌سازید و برای آن <code>IntoResponse</code> پیاده‌سازی می‌کنید. :contentReference[oaicite:9]{index=9}</p>
+</li>
+</ul>
+<h3 id="پاسخ-کوتاه-26"><a class="header" href="#پاسخ-کوتاه-26">پاسخ کوتاه</a></h3>
+<p><code>impl IntoResponse</code> برمی‌گرداند یک نوع قابل تبدیل به پاسخ؛ <code>Result&lt;T, E&gt;</code> صراحتاً خطا را نشان می‌دهد — ولی برای تبدیل خودکار، هم <code>T</code> و هم <code>E</code> باید <code>IntoResponse</code> را پیاده‌سازی کنند. :contentReference[oaicite:10]{index=10}</p>
+<hr />
+<h2 id="چگونه-http-status-code-و-body-را-همزمان-کنترل-میکنید"><a class="header" href="#چگونه-http-status-code-و-body-را-همزمان-کنترل-میکنید">چگونه HTTP status code و body را همزمان کنترل می‌کنید؟</a></h2>
+<h3 id="پاسخ-بلند-28"><a class="header" href="#پاسخ-بلند-28">پاسخ بلند</a></h3>
+<p>چند راه معمول:</p>
+<ul>
+<li>
+<p>برگرداندن یک tuple مثل <code>(StatusCode, impl IntoResponse)</code> یا <code>(StatusCode, HeaderMap, body)</code> — Axum این ترکیب‌ها را می‌شناسد و آن‌ها را به <code>Response</code> تبدیل می‌کند. این ساده‌ترین راه برای تعیین هم‌زمان status و body است. :contentReference[oaicite:11]{index=11}</p>
+</li>
+<li>
+<p>ساختن و برگرداندن یک <code>http::Response&lt;Body&gt;</code> کامل وقتی نیاز به کنترل دقیق headers، extensions یا body streaming دارید. :contentReference[oaicite:12]{index=12}</p>
+</li>
+<li>
+<p>در صورت استفاده از <code>Result&lt;T, E&gt;</code>، نوع <code>E</code> را طوری پیاده‌سازی کنید که هنگام <code>Err</code> یک status مناسب و body توضیحی (مثلاً JSON با فیلدهای خطا) تولید کند (یعنی <code>IntoResponse</code> برای <code>E</code>). :contentReference[oaicite:13]{index=13}</p>
+</li>
+</ul>
+<h3 id="پاسخ-کوتاه-27"><a class="header" href="#پاسخ-کوتاه-27">پاسخ کوتاه</a></h3>
+<p>برای حالت‌های ساده از tuple مثل <code>(StatusCode, body)</code> استفاده کنید؛ برای کنترل کامل از <code>http::Response</code>؛ یا error type را طوری <code>IntoResponse</code> کنید که status+body مناسب تولید کند. :contentReference[oaicite:14]{index=14}</p>
+<hr />
+<h2 id="بهترین-الگو-برای-error-type-در-axum-چیست"><a class="header" href="#بهترین-الگو-برای-error-type-در-axum-چیست">بهترین الگو برای error type در Axum چیست؟</a></h2>
+<h3 id="پاسخ-بلند-29"><a class="header" href="#پاسخ-بلند-29">پاسخ بلند</a></h3>
+<p>الگوی رایج و مؤثر:</p>
+<ol>
+<li><strong>یک <code>enum</code> خطا در سطح application</strong> که تمام خطاهای منطقی را پوشش می‌دهد (مثلاً <code>enum AppError { NotFound, Validation(ValidationError), Auth(AuthError), Internal(anyhow::Error) }</code>).</li>
+<li>از crates مثل <code>thiserror</code> برای derive کردن <code>Error</code> و متدهای مفید استفاده کنید.</li>
+<li>برای <code>AppError</code> یک <code>impl IntoResponse</code> بنویسید که status مناسب را تعیین و body (معمولاً <code>Json&lt;{ code, message, details }&gt;</code> ) را برمی‌گرداند. این کار موجب می‌شود هر handler بتواند <code>Result&lt;T, AppError&gt;</code> برگرداند و mapping سراسری خطاها ساده و یکنواخت باشد.</li>
+<li>از logging/observability در نقطهٔ central (مثلاً در <code>IntoResponse</code> برای <code>Internal</code> یا در یک middleware) استفاده کنید تا stack/context لاگ شود اما پاسخ به کاربر امن بماند.</li>
+</ol>
+<p>این الگو ترکیب type-safety، خوانایی و امکان unit/integration testing را فراهم می‌کند و با اکوسیستم Axum/Tower به‌خوبی کار می‌کند. :contentReference[oaicite:15]{index=15}</p>
+<h3 id="پاسخ-کوتاه-28"><a class="header" href="#پاسخ-کوتاه-28">پاسخ کوتاه</a></h3>
+<p>یک <code>enum</code> مرکزی برای خطاها + <code>thiserror</code> برای derive + یک <code>impl IntoResponse</code> برای mapping به <code>StatusCode</code> و JSON body. لاگینگ و تبدیل خطاهای داخلی در middleware یا داخل <code>IntoResponse</code> انجام شود. :contentReference[oaicite:16]{index=16}</p>
+<hr />
 
                     </main>
 
